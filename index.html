@@ -1,0 +1,3052 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GIFTviewer</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0b1322;
+  --card: #152238;
+  --accent: #4a7dbd;
+  --accent-dim: rgba(74,125,189,0.18);
+  --correct: #22c55e;
+  --wrong: #ef4444;
+  --text: #e6ecf5;
+  --muted: #8a97ad;
+  --blue: #60a5fa;
+  --orange: #f97316;
+  --pink: #ec4899;
+  --teal: #14b8a6;
+  --header-bg: rgba(11,19,34,0.9);
+  --sidebar-bg: rgba(13,22,40,0.95);
+  --border: rgba(120,160,210,0.25);
+  --scrollbar: #4a7dbd;
+  --kbd-bg: rgba(255,255,255,0.1);
+  --btn-text: white;
+  --badge-text: #0b1322;
+}
+
+body.light {
+  --bg: #f5f5f5;
+  --card: #ffffff;
+  --accent: #1a3a6b;
+  --accent-dim: rgba(26,58,107,0.1);
+  --correct: #16a34a;
+  --wrong: #dc2626;
+  --text: #222;
+  --muted: #666;
+  --blue: #2563eb;
+  --orange: #ea580c;
+  --pink: #db2777;
+  --teal: #0d9488;
+  --header-bg: rgba(255,255,255,0.95);
+  --sidebar-bg: rgba(255,255,255,0.97);
+  --border: #d0d0d0;
+  --scrollbar: #1a3a6b;
+  --kbd-bg: rgba(0,0,0,0.07);
+  --btn-text: #fff;
+  --badge-text: #fff;
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── HEADER ── */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  background: var(--header-bg);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(8px);
+}
+header h1 { font-size: 1.2rem; color: var(--accent); }
+body.fullscreen-active header { display: none; }
+
+.file-area {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.file-area label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--accent);
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: background 0.2s;
+}
+.file-area label:hover { background: #234d8a; }
+.file-area input[type="file"] { display: none; }
+.file-info { color: var(--muted); font-size: 0.85rem; }
+
+.theme-toggle {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--accent-dim);
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.theme-toggle:hover { transform: scale(1.08); border-color: var(--accent); }
+
+.pdf-btn {
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 12px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--accent-dim);
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.pdf-btn:hover { transform: scale(1.05); border-color: var(--accent); color: var(--accent); }
+
+/* ── SEARCH BOX ── */
+.search-box {
+  position: relative;
+  flex: 1 1 320px;
+  max-width: 620px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+.search-box input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 14px;
+  font-size: 0.9rem;
+  border-radius: 20px;
+  border: 1.5px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.search-box input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(26,58,107,0.15); }
+.search-box input::placeholder { color: var(--muted); }
+.search-results {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 16px;
+  right: 16px;
+  z-index: 120;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  max-height: 60vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.4);
+  padding: 4px;
+  display: none;
+}
+.search-results.show { display: block; }
+.search-meta {
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+.search-item {
+  padding: 9px 12px;
+  cursor: pointer;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+.search-item + .search-item { margin-top: 2px; }
+.search-item:hover, .search-item.active { background: var(--accent-dim); }
+.search-item-q { font-weight: 600; line-height: 1.35; }
+.search-item-a {
+  margin-top: 3px;
+  margin-left: 10px;
+  color: var(--muted);
+  line-height: 1.3;
+}
+.search-item-a .hl { color: var(--text); }
+.hl {
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-dim);
+  border-radius: 3px;
+  padding: 0 1px;
+}
+@media (max-width: 760px) {
+  header { flex-wrap: wrap; gap: 8px; }
+  .search-box { flex-basis: 100%; order: 3; padding: 0; max-width: none; }
+  .search-results { left: 0; right: 0; }
+}
+
+/* ── LAYOUT ── */
+.app {
+  display: flex;
+  height: calc(100vh - 57px);
+}
+body.fullscreen-active .app { height: 100vh; }
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width: 300px;
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: margin-left 0.3s ease;
+}
+.sidebar.collapsed { margin-left: -300px; }
+.sidebar-header {
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.sidebar-header h2 { font-size: 1rem; color: var(--accent); }
+.sidebar-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+.sidebar-list::-webkit-scrollbar { width: 6px; }
+.sidebar-list::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 3px; }
+
+.q-item {
+  padding: 10px 12px;
+  margin-bottom: 4px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--muted);
+  transition: all 0.2s;
+  border: 1px solid transparent;
+}
+.q-item:hover { background: var(--accent-dim); color: var(--text); }
+.q-item.active {
+  background: var(--accent-dim);
+  color: var(--text);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+.q-item .q-num {
+  display: inline-block;
+  background: var(--accent);
+  color: var(--btn-text);
+  width: 24px;
+  height: 24px;
+  text-align: center;
+  line-height: 24px;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin-right: 8px;
+}
+.q-item .q-type {
+  display: inline-block;
+  font-size: 0.65rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 4px;
+  vertical-align: middle;
+  color: var(--badge-text);
+  font-weight: 600;
+}
+.q-item .q-type.mc { background: var(--blue); }
+.q-item .q-type.tf { background: var(--orange); }
+.q-item .q-type.short { background: var(--teal); }
+.q-item .q-type.match { background: var(--pink); }
+
+/* ── MAIN AREA ── */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── QUESTION DISPLAY ── */
+.question-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(20px, 3vw, 40px);
+  position: relative;
+  overflow-y: auto;
+}
+
+.empty-state {
+  text-align: center;
+  color: var(--muted);
+}
+.empty-state .icon { font-size: 4rem; margin-bottom: 16px; }
+.empty-state h2 { font-size: 1.5rem; margin-bottom: 8px; color: var(--text); }
+.empty-state p { font-size: 0.95rem; }
+
+.attribution {
+  margin-top: 32px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  font-size: 0.8rem;
+  color: var(--muted);
+  line-height: 1.7;
+}
+.attribution a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+.attribution a:hover { text-decoration: underline; }
+
+.question-card {
+  width: 100%;
+  max-width: min(2400px, 100%);
+  animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.q-number {
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--accent);
+  font-weight: 600;
+  margin-bottom: 12px;
+  letter-spacing: 1px;
+}
+
+.q-text {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px 32px;
+  font-size: clamp(1.05rem, 2.4vw, 1.4rem);
+  line-height: 1.6;
+  text-align: left;
+  margin-bottom: 28px;
+  min-height: 100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: pre-wrap;
+  position: relative;
+  cursor: zoom-in;
+  transition: box-shadow 0.2s;
+  user-select: text;
+}
+.q-text:hover { box-shadow: 0 0 0 2px var(--accent); }
+.q-text .zoom-hint {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  font-size: 0.85rem;
+  color: var(--muted);
+  opacity: 0.55;
+  pointer-events: none;
+  background: var(--accent-dim);
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.answers-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(10px, 1.4vw, 18px);
+  width: 100%;
+}
+
+.answer-btn {
+  padding: clamp(14px, 1.6vw, 26px) clamp(16px, 1.8vw, 28px);
+  border: 2px solid transparent;
+  border-radius: 12px;
+  font-size: clamp(1rem, 1.7vw, 1.35rem);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: clamp(10px, 1.2vw, 16px);
+  position: relative;
+  overflow: hidden;
+  color: var(--btn-text);
+  min-height: clamp(62px, 7vh, 92px);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.answer-btn .letter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: clamp(32px, 3.2vw, 42px);
+  height: clamp(32px, 3.2vw, 42px);
+  border-radius: 8px;
+  background: rgba(0,0,0,0.25);
+  font-size: clamp(0.9rem, 1.2vw, 1.05rem);
+  flex-shrink: 0;
+}
+/* Primarios + secundarios con buen contraste (verde reservado para la solución) */
+.answer-btn:nth-child(1) { background: #e21b3c; color: #fff; }          /* rojo */
+.answer-btn:nth-child(2) { background: #0aa2b8; color: #fff; }          /* turquesa */
+.answer-btn:nth-child(3) { background: #1368ce; color: #fff; }          /* azul */
+.answer-btn:nth-child(4) { background: #f07c00; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.45); } /* naranja */
+.answer-btn:nth-child(5) { background: #eab308; color: #1a1a1a; }       /* amarillo */
+.answer-btn:nth-child(6) { background: #7c3aed; color: #fff; }          /* violeta */
+.answer-btn:nth-child(1) .letter,
+.answer-btn:nth-child(2) .letter,
+.answer-btn:nth-child(3) .letter,
+.answer-btn:nth-child(4) .letter,
+.answer-btn:nth-child(6) .letter { background: rgba(0,0,0,0.28); }
+.answer-btn:nth-child(5) .letter { background: rgba(0,0,0,0.15); }
+.answer-btn:nth-child(1),
+.answer-btn:nth-child(2),
+.answer-btn:nth-child(3),
+.answer-btn:nth-child(4),
+.answer-btn:nth-child(6) { text-shadow: 0 1px 2px rgba(0,0,0,0.35); }
+
+.answer-btn:hover { transform: scale(1.03); box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+.answer-btn:active { transform: scale(0.98); }
+
+.answer-btn.show-correct {
+  background: #16a34a !important;
+  color: #fff !important;
+  border-color: #22c55e;
+  box-shadow: 0 0 32px rgba(34,197,94,0.6);
+  transform: scale(1.06);
+  opacity: 1;
+  filter: none;
+}
+.answer-btn.show-correct .letter { background: rgba(0,0,0,0.25); }
+.answer-btn.show-wrong {
+  background: #555 !important;
+  color: rgba(255,255,255,0.35) !important;
+  border-color: transparent;
+  box-shadow: none;
+  opacity: 0.45;
+  transform: scale(0.97);
+}
+.answer-btn.show-wrong .letter { background: rgba(255,255,255,0.08); }
+.answer-btn.show-correct::after {
+  content: '✔';
+  position: absolute;
+  right: 16px;
+  font-size: 1.6rem;
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.4);
+}
+.answer-btn.show-correct,
+.answer-btn.show-wrong { transition: all 0.35s ease; }
+
+/* Feedback */
+.feedback {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 12px;
+  background: var(--accent-dim);
+  border: 1px solid var(--border);
+  font-size: 0.95rem;
+  color: var(--muted);
+  text-align: center;
+}
+.feedback strong { color: var(--text); }
+
+/* True/False special */
+.tf-answers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: clamp(10px, 1.4vw, 16px);
+  max-width: min(700px, 90vw);
+  width: 100%;
+  margin: 0 auto;
+}
+.tf-btn {
+  padding: clamp(22px, 3vh, 34px);
+  border: 2px solid transparent;
+  border-radius: 12px;
+  font-size: clamp(1.3rem, 3vw, 1.8rem);
+  font-weight: 700;
+  cursor: pointer;
+  color: var(--badge-text);
+  text-align: center;
+  transition: all 0.2s;
+}
+.tf-btn.true-btn { background: var(--correct); }
+.tf-btn.false-btn { background: var(--wrong); }
+.tf-btn:hover { transform: scale(1.03); }
+.tf-btn.show-correct,
+.tf-btn.show-wrong { transition: all 0.35s ease; }
+.tf-btn.show-correct { background: #16a34a !important; color: #fff !important; border-color: #22c55e; box-shadow: 0 0 32px rgba(34,197,94,0.6); transform: scale(1.06); opacity: 1; }
+.tf-btn.show-wrong { background: #555 !important; color: rgba(255,255,255,0.35) !important; border-color: transparent; box-shadow: none; opacity: 0.45; transform: scale(0.97); }
+.tf-btn.show-correct,
+.tf-btn.show-wrong { transition: all 0.35s ease; }
+
+/* Short answer */
+.short-answer {
+  text-align: center;
+}
+.short-answer .correct-text {
+  font-size: 1.3rem;
+  color: var(--correct);
+  font-weight: 700;
+  padding: 20px;
+  background: rgba(34,197,94,0.15);
+  border: 2px solid var(--correct);
+  border-radius: 12px;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+/* ── CONTROLS BAR ── */
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px 24px;
+  background: var(--sidebar-bg);
+  border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.ctrl-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--accent-dim);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.ctrl-btn:hover { background: var(--accent-dim); border-color: var(--accent); }
+.ctrl-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.ctrl-btn.primary { background: var(--accent); border-color: var(--accent); color: var(--btn-text); }
+.ctrl-btn.primary:hover { background: #234d8a; }
+.ctrl-btn.success { background: rgba(34,197,94,0.2); border-color: var(--correct); color: var(--correct); }
+.ctrl-btn.success:hover { background: rgba(34,197,94,0.4); }
+
+.progress-info {
+  color: var(--muted);
+  font-size: 0.85rem;
+  min-width: 80px;
+  text-align: center;
+}
+
+.progress-bar-container {
+  width: 100%;
+  height: 4px;
+  background: var(--accent-dim);
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+.progress-bar {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
+
+/* Keyboard shortcut hints */
+.kbd {
+  display: inline-block;
+  padding: 2px 6px;
+  background: var(--kbd-bg);
+  border-radius: 4px;
+  font-size: 0.7rem;
+  color: var(--muted);
+  font-family: monospace;
+  margin-left: 4px;
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 768px) {
+  .sidebar { position: fixed; z-index: 200; height: 100%; top: 57px; }
+  .sidebar.collapsed { margin-left: -300px; }
+  .q-text { font-size: clamp(1rem, 4.5vw, 1.1rem); padding: 20px; }
+}
+body.fullscreen-active .sidebar { top: 0; }
+
+@media (max-width: 560px) {
+  .answers-grid, .tf-answers { grid-template-columns: 1fr; }
+}
+
+/* Disposición de respuestas: 1 por línea (toggle en la barra de controles) */
+body.oneparline .answers-grid,
+body.oneparline .tf-answers {
+  grid-template-columns: 1fr;
+}
+body.oneparline .answer-btn {
+  max-width: min(1200px, 100%);
+  margin: 0 auto;
+}
+
+/* ── ANIMATIONS ── */
+@keyframes slideIn {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+/* ── TIMER (optional visual) ── */
+.timer-display {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── MERGE MODAL ── */
+.merge-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 1100;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.merge-modal.open { display: flex; }
+.merge-modal-content {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 420px;
+  padding: 20px;
+  text-align: center;
+}
+.merge-file-name {
+  font-weight: 700;
+  color: var(--accent);
+  font-size: 0.95rem;
+  word-break: break-all;
+}
+.merge-desc { color: var(--muted); font-size: 0.9rem; margin: 6px 0 18px; }
+.merge-options { display: flex; flex-direction: column; gap: 10px; }
+.merge-options .ctrl-btn {
+  justify-content: center;
+  padding: 12px 16px;
+  font-size: 0.95rem;
+  width: 100%;
+}
+.merge-options small { color: var(--muted); font-weight: 400; font-size: 0.75rem; }
+
+/* ── SIDEBAR TOOLS ── */
+.sidebar-tools {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.tool-btn {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--accent-dim);
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+}
+.tool-btn:hover { border-color: var(--accent); transform: scale(1.08); }
+.tool-btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+.tool-delete { color: var(--wrong); border-color: rgba(239,68,68,0.4); }
+.tool-delete:hover { border-color: var(--wrong); background: rgba(239,68,68,0.15); }
+
+/* ── EDITOR STATUS ── */
+.editor-status {
+  padding: 8px 20px;
+  font-size: 0.85rem;
+  display: none;
+  border-bottom: 1px solid var(--border);
+}
+.editor-status.error { display: block; color: var(--wrong); }
+.editor-status.ok { display: block; color: var(--correct); }
+
+/* ── QUESTION FORM MODAL ── */
+.qform-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 1150;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.qform-modal.open { display: flex; }
+.qform-content {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 640px;
+  padding: 18px;
+  max-height: 94vh;
+  overflow-y: auto;
+}
+.qform-label { display: block; color: var(--accent); font-weight: 600; font-size: 0.85rem; margin: 10px 0 4px; }
+.qform-content textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.95rem;
+  resize: vertical;
+  font-family: inherit;
+}
+.qform-opt-row { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+.qform-opt-row input[type="text"] {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+}
+.qform-opt-row input[type="radio"] { accent-color: var(--correct); width: 16px; height: 16px; cursor: pointer; }
+.qform-letter { font-weight: 700; color: var(--accent); width: 14px; text-align: right; }
+.qform-opt-ok { color: var(--correct); font-weight: 700; }
+.qform-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+.qform-tab {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--muted);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all .15s;
+}
+.qform-tab.active { background: var(--accent); color: var(--btn-text); border-color: var(--accent); }
+.raw-glyph { font-family: 'Courier New', monospace; font-weight: 700; }
+.raw-toolbar { display: flex; justify-content: flex-end; gap: 8px; margin: 6px 0; }
+#qfPaneRaw textarea#rawOutput {
+  flex: 1;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Courier New', monospace;
+  font-size: 1rem;
+  line-height: 1.5;
+  white-space: pre;
+  overflow: auto;
+  resize: none;
+  min-height: 280px;
+}
+.qform-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+
+/* ── DROPDOWN ── */
+.dropdown { position: relative; display: inline-flex; }
+.dropdown-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+  padding: 6px;
+  z-index: 300;
+  min-width: 210px;
+}
+.dropdown-menu.open { display: block; }
+.dropdown-item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: none;
+  background: none;
+  color: var(--text);
+  font-size: 0.9rem;
+  cursor: pointer;
+  border-radius: 8px;
+  text-align: left;
+}
+.dropdown-item:hover { background: var(--accent-dim); }
+.small-btn { height: 36px; padding: 0 10px; font-size: 0.8rem; border-radius: 8px; }
+
+/* ── PDF CONFIG MODAL ── */
+.pdf-config-form {
+  text-align: left;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+  overflow: hidden;
+}
+.pdf-config-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 4px 2px;
+}
+.pdf-config-actions {
+  flex-shrink: 0;
+  border-top: 1px solid var(--border);
+  background: var(--card);
+  padding-top: 12px;
+  position: sticky;
+  bottom: 0;
+}
+.pdf-row { display: block; margin: 12px 0; }
+.pdf-row-title { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 5px; }
+.pdf-config-form input[type="text"],
+.pdf-config-form textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-family: inherit;
+}
+.pdf-config-form textarea { resize: vertical; }
+.pdf-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+.pdf-check input[type="checkbox"] {
+  accent-color: var(--accent);
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+#pdfCoverSection { display: none; }
+.pdf-cover-box {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin: 10px 0;
+  background: var(--accent-dim);
+}
+.pdf-cover-title { font-weight: 700; color: var(--accent); font-size: 0.8rem; margin: 10px 0 4px; }
+.pdf-block { margin: 10px 0; }
+.pdf-logo-row { display: flex; flex-direction: column; gap: 6px; margin: 6px 0; }
+.pdf-logo-row input[type="file"] {
+  color: var(--text);
+  font-size: 0.85rem;
+}
+.pdf-logo-preview {
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  padding: 8px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 0.8rem;
+  background: var(--bg);
+  overflow: hidden;
+}
+.pdf-logo-preview img {
+  max-height: 56px;
+  max-width: 100%;
+  object-fit: contain;
+}
+.pdf-align { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 2px; }
+.pdf-align .pdf-check { margin: 0; }
+
+/* ── RAW MODAL ── */
+.raw-modal {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.raw-modal.open { display: flex; }
+.raw-modal-content {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 1100px;
+  height: 92vh;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.raw-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.raw-modal-header h3 { color: var(--accent); font-size: 1rem; }
+#rawOutput, #rawAllOutput {
+  flex: 1;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 18px;
+  border: none;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Courier New', monospace;
+  font-size: 1rem;
+  line-height: 1.5;
+  white-space: pre;
+  overflow: auto;
+  resize: none;
+  min-height: 0;
+}
+body.light #rawOutput, body.light #rawAllOutput { background: #f5f5f5; }
+
+/* ── FULLSCREEN READER ── */
+.reader-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: var(--bg);
+  padding: 6vh 5vw 10vh;
+  cursor: zoom-out;
+  overflow: hidden;
+}
+.reader-overlay.open { display: block; }
+.reader-text {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  white-space: pre;
+  font-size: clamp(1.2rem, 2.8vh, 2rem);
+  line-height: 1.7;
+  color: var(--text);
+  text-align: left;
+  user-select: text;
+}
+.reader-hint {
+  position: absolute;
+  bottom: 16px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.85rem;
+  padding: 6px;
+  background: var(--accent-dim);
+  border-radius: 8px;
+  width: fit-content;
+  margin: 0 auto;
+  pointer-events: none;
+}
+.reader-wrap {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 2010;
+  background: var(--accent);
+  color: var(--btn-text);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.reader-wrap:hover { background: #234d8a; border-color: #234d8a; }
+.reader-overlay.wrap .reader-text { white-space: pre-wrap; }
+
+/* ── REPORT MODAL ── */
+.report-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.report-modal.open { display: flex; }
+.report-modal-content {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 1100px;
+  height: 92vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.report-header h3 { color: var(--accent); font-size: 1rem; }
+.report-summary { padding: 12px 20px; border-bottom: 1px solid var(--border); font-size: 0.85rem; color: var(--muted); }
+.report-summary strong { color: var(--text); }
+.report-summary .err-count { color: var(--wrong); font-weight: 700; }
+.report-summary .ok-count { color: var(--correct); font-weight: 700; }
+.report-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+}
+.report-item {
+  border: 1px solid rgba(239,68,68,0.3);
+  border-radius: 10px;
+  margin-bottom: 12px;
+  overflow: hidden;
+  background: rgba(239,68,68,0.06);
+}
+.report-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  cursor: pointer;
+  background: rgba(239,68,68,0.1);
+}
+.report-item-header:hover { background: rgba(239,68,68,0.18); }
+.report-item-line {
+  font-weight: 700;
+  color: var(--wrong);
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+.report-item-msg { color: var(--text); font-size: 0.85rem; flex: 1; margin-left: 12px; }
+.report-item-arrow { color: var(--muted); font-size: 0.7rem; margin-left: 10px; transition: transform 0.2s; }
+.report-item.open .report-item-arrow { transform: rotate(180deg); }
+.report-item-raw {
+  display: none;
+  border-top: 1px solid rgba(239,68,68,0.2);
+}
+.report-item.open .report-item-raw { display: block; }
+.report-item-raw pre {
+  margin: 0;
+  padding: 12px 14px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Courier New', monospace;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  max-height: 140px;
+  overflow: auto;
+}
+body.light .report-item-raw pre { background: #f5f5f5; }
+.report-badge {
+  background: var(--wrong);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: none;
+}
+.report-badge.visible { display: inline-block; }
+
+/* ── PRINT TO PDF ── */
+#printArea { display: none; }
+
+@page { margin: 14mm; }
+
+@media print {
+  body { background: #fff !important; }
+  body > *:not(#printArea) { display: none !important; }
+  #printArea {
+    display: block;
+    color: #111;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-size: 11pt;
+    line-height: 1.5;
+  }
+  #printArea h1 { font-size: 18pt; margin: 0 0 4px; }
+  #printArea .print-meta { color: #555; font-size: 9pt; margin: 0 0 16px; }
+  .print-q {
+    border: 1px solid #bbb;
+    border-left: 4px solid #1a1a3e;
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-bottom: 10px;
+    break-inside: avoid;
+  }
+  .print-q-num { font-weight: 700; font-size: 9pt; color: #1a1a3e; letter-spacing: .5px; }
+  .print-q-text { font-weight: 600; margin: 4px 0 6px; white-space: pre-wrap; }
+  .print-opt { margin-left: 12px; }
+  .print-opt.corr, .print-answers .corr { font-weight: 700; }
+  .print-opt.corr::after { content: ' ✓'; color: #16a34a; font-weight: 700; }
+  .print-cover { border-bottom: 1px solid #ccc; margin-bottom: 16px; padding-bottom: 12px; text-align: center; }
+  .print-logo { margin-bottom: 10px; }
+  .print-logo img { max-height: 64px; max-width: 220px; }
+  .print-logo.left { text-align: left; }
+  .print-logo.center { text-align: center; }
+  .print-logo.right { text-align: right; }
+  .print-fields-row { display: flex; gap: 14px; text-align: left; margin: 16px 0; }
+  .print-field-name, .print-field-date {
+    border: 1px solid #111;
+    background: #eee;
+    border-radius: 6px;
+    font-size: 11pt;
+    font-weight: 600;
+  }
+  .print-field-name { flex: 3; padding: 10px 14px 30px; min-height: 34px; }
+  .print-field-date { flex: 1; padding: 10px 12px 22px; min-height: 28px; }
+  .print-desc { text-align: left; margin: 14px 0; font-size: 11pt; font-weight: 600; white-space: pre-wrap; }
+  .print-instr { text-align: left; margin: 12px 0; }
+  .print-instr-title { font-weight: 700; font-size: 11pt; margin-bottom: 4px; }
+  .print-instr-body { font-size: 10.5pt; white-space: pre-wrap; }
+  .print-pagebreak { page-break-before: always; break-before: page; }
+  .print-sol-title { font-size: 15pt; }
+  .print-sol {
+    column-count: 4;
+    column-gap: 22px;
+    font-size: 10pt;
+    line-height: 1.9;
+  }
+  .print-sol-item { break-inside: avoid; }
+  .print-sol-num { font-weight: 700; }
+  .print-sol-ans { font-weight: 700; color: #16a34a; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>⚡ GIFTviewer</h1>
+
+  <div class="search-box" id="searchBox">
+    <input type="text" id="searchInput" placeholder="🔍 Buscar en preguntas y respuestas (↑/↓ + Enter para ir a la pregunta)" autocomplete="off" spellcheck="false">
+    <div class="search-results" id="searchResults"></div>
+  </div>
+
+  <div class="file-area">
+    <span class="report-badge" id="reportBadge" onclick="showReport()" title="Ver errores de sintaxis">0</span>
+    <span class="file-info" id="fileInfo">Sin archivo cargado</span>
+    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Cambiar modo claro/oscuro">🌙</button>
+    <button class="ctrl-btn small-btn" onclick="openEditor()" title="Editar el GIFT completo de todas las preguntas">✏️ Editar GIFT</button>
+    <div class="dropdown" id="downloadDropdown">
+      <button class="ctrl-btn small-btn" id="btnDownload" onclick="toggleDownloadMenu(event)" title="Descargar" disabled>
+        📥 Descargar ▾
+      </button>
+      <div class="dropdown-menu" id="downloadMenu">
+        <button class="dropdown-item" onclick="exportDocument()">📄 Exportar documento</button>
+        <button class="dropdown-item" onclick="downloadGift()">💾 Descargar GIFT</button>
+      </div>
+    </div>
+    <label>
+      📂 Añadir .gift
+      <input type="file" id="giftFile" accept=".gift,.txt">
+    </label>
+  </div>
+</header>
+
+<div class="app">
+  <aside class="sidebar collapsed" id="sidebar">
+    <div class="sidebar-header">
+      <h2>Preguntas (<span id="qCount">0</span>)</h2>
+      <button class="ctrl-btn" onclick="toggleSidebar()" title="Cerrar lista">✕</button>
+    </div>
+    <div class="sidebar-tools">
+      <button class="tool-btn" id="toolAdd" onclick="openEditForm(null)" title="Añadir pregunta">➕</button>
+      <button class="tool-btn" id="toolEdit" onclick="editCurrent()" title="Editar pregunta actual">✏️</button>
+      <button class="tool-btn tool-delete" id="toolDelete" onclick="deleteCurrent()" title="Borrar pregunta actual">✕</button>
+    </div>
+    <div class="sidebar-list" id="questionList"></div>
+  </aside>
+
+  <div class="main">
+    <div class="question-container" id="questionContainer">
+      <div class="empty-state" id="emptyState">
+        <div class="icon">📝</div>
+        <h2>Carga un archivo GIFT</h2>
+        <p>Haz clic en el botón "Añadir .gift" o arrastra un archivo aquí</p>
+        <button class="ctrl-btn primary" onclick="addFirstQuestion()" title="Empezar un examen desde cero">➕ Añadir pregunta manualmente</button>
+        <div class="attribution">
+          Autor: <a href="https://jfsanchez.es" target="_blank" rel="noopener">Jose Sanchez</a> ·
+          © 2026 · Creada con OpenCode y Big Pickle
+        </div>
+      </div>
+    </div>
+
+    <div class="controls" id="controlsBar" style="display:none;">
+      <button class="ctrl-btn" onclick="toggleSidebar()" title="Lista de preguntas">
+        ☰ Listado <span class="kbd">L</span>
+      </button>
+      <button class="ctrl-btn" onclick="prevQuestion()" id="btnPrev" title="Pregunta anterior">
+        ◀ Anterior <span class="kbd">←</span>
+      </button>
+      <span class="progress-info" id="progressInfo">1 / 1</span>
+      <button class="ctrl-btn primary" onclick="nextQuestion()" id="btnNext" title="Siguiente pregunta">
+        Siguiente ▶ <span class="kbd">→</span>
+      </button>
+      <button class="ctrl-btn success" onclick="toggleSolution()" id="btnSolution" title="Ver solución">
+        💡 Solución <span class="kbd">S</span>
+      </button>
+      <button class="ctrl-btn" onclick="toggleAnswerLayout()" id="btnLayout" title="Cambiar disposición de las respuestas">
+        ⊞ 2 por línea
+      </button>
+      <button class="ctrl-btn" onclick="toggleFullscreen()" id="btnFullscreen" title="Pantalla completa">
+        ⛶ Pantalla completa <span class="kbd">F</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- FULLSCREEN READER -->
+<div class="reader-overlay wrap" id="readerOverlay">
+  <div class="reader-text" id="readerText"></div>
+  <button class="reader-wrap" id="readerWrapBtn" onclick="toggleReaderWrap(event)" title="Activar o desactivar el ajuste de línea">📏 Text wrap: ON</button>
+  <div class="reader-hint">⛶ Clic en cualquier lugar para volver a las opciones</div>
+</div>
+
+<!-- SYNTAX REPORT -->
+<div class="report-modal" id="reportModal">
+  <div class="report-modal-content">
+    <div class="report-header">
+      <h3>🔎 Reporte de sintaxis GIFT</h3>
+      <button class="ctrl-btn" onclick="hideReport()">✕</button>
+    </div>
+    <div class="report-summary" id="reportSummary"></div>
+    <div class="report-list" id="reportList"></div>
+  </div>
+</div>
+
+<!-- PRINT AREA -->
+<div id="printArea"></div>
+
+<!-- MERGE MODAL -->
+<div class="merge-modal" id="mergeModal">
+  <div class="merge-modal-content">
+    <div class="report-header">
+      <h3>📥 Añadir preguntas</h3>
+      <button class="ctrl-btn" onclick="cancelMerge()">✕</button>
+    </div>
+    <p class="merge-file-name" id="mergeFileName"></p>
+    <p class="merge-desc">¿Dónde quieres insertar las preguntas de este fichero?</p>
+    <div class="merge-options">
+      <button class="ctrl-btn" onclick="doMerge('inicio')">⬆️ Al principio</button>
+      <button class="ctrl-btn" onclick="doMerge('medio')">↕️ En el medio <small>(después de la pregunta actual)</small></button>
+      <button class="ctrl-btn" onclick="doMerge('final')">⬇️ Al final</button>
+    </div>
+  </div>
+</div>
+
+<!-- FULL GIFT EDITOR -->
+<div class="raw-modal" id="rawAllModal">
+  <div class="raw-modal-content">
+    <div class="raw-modal-header">
+      <h3>✏️ GIFT completo (todas las preguntas)</h3>
+      <div style="display:flex; gap:8px;">
+        <button class="ctrl-btn success" onclick="saveAllGift()" title="Guardar los cambios">💾 Guardar</button>
+        <button class="ctrl-btn" onclick="hideRawAll()" title="Cerrar">✕</button>
+      </div>
+    </div>
+    <div class="editor-status" id="rawAllStatus"></div>
+    <textarea id="rawAllOutput" spellcheck="false"></textarea>
+  </div>
+</div>
+
+<!-- DESTINATION MODAL -->
+<div class="merge-modal" id="destModal">
+  <div class="merge-modal-content">
+    <div class="report-header">
+      <h3>✅ Preguntas guardadas</h3>
+      <button class="ctrl-btn" onclick="hideDest()">✕</button>
+    </div>
+    <p class="merge-desc">¿Dónde quieres ir?</p>
+    <div class="merge-options">
+      <button class="ctrl-btn" onclick="doDestGo(false)">↩️ Volver a la pregunta actual</button>
+      <button class="ctrl-btn" onclick="doDestGo(true)">⏮️ Ir al inicio</button>
+    </div>
+  </div>
+</div>
+
+<!-- QUESTION FORM MODAL -->
+<div class="qform-modal" id="qformModal">
+  <div class="qform-content">
+    <div class="report-header" style="padding:0 0 12px 0; border-bottom:none; margin-bottom:6px;">
+      <h3 id="qformTitle">✏️ Editar pregunta</h3>
+      <button class="ctrl-btn" onclick="hideQForm()">✕</button>
+    </div>
+    <div class="qform-tabs">
+      <button class="qform-tab active" id="qfTabFormBtn" onclick="qfTab('form')">✏️ Formulario</button>
+      <button class="qform-tab" id="qfTabRawBtn" onclick="qfTab('raw')"><span class="raw-glyph">{ }</span> RAW</button>
+    </div>
+    <div id="qfPaneForm">
+      <label class="qform-label" for="qfEnunciado">Enunciado</label>
+      <textarea id="qfEnunciado" rows="3" placeholder="Texto de la pregunta…"></textarea>
+      <label class="qform-label">Opciones (marca la correcta)</label>
+      <div id="qfOptions"></div>
+      <div class="qform-actions">
+        <button class="ctrl-btn" onclick="hideQForm()">Cancelar</button>
+        <button class="ctrl-btn primary" onclick="saveQForm()">💾 Guardar</button>
+      </div>
+      <div class="editor-status" id="qfStatus"></div>
+    </div>
+    <div id="qfPaneRaw" style="display:none;">
+      <label class="qform-label">Código GIFT de la pregunta</label>
+      <div class="raw-toolbar">
+        <button class="ctrl-btn" id="btnCopyRaw" onclick="copyRaw()" title="Copiar al portapapeles">📋 Copiar</button>
+        <button class="ctrl-btn success" onclick="saveRaw()" title="Guardar y actualizar la pregunta">💾 Guardar</button>
+      </div>
+      <div class="editor-status" id="rawStatus"></div>
+      <textarea id="rawOutput" spellcheck="false"></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- RESTORE MODAL -->
+<div class="merge-modal" id="restoreModal">
+  <div class="merge-modal-content">
+    <div class="report-header">
+      <h3>💾 Estado guardado encontrado</h3>
+      <button class="ctrl-btn" onclick="doRestore(false)">✕</button>
+    </div>
+    <p class="merge-desc" id="restoreInfo"></p>
+    <div class="merge-options">
+      <button class="ctrl-btn success" onclick="doRestore(true)">↩️ Cargar el último estado</button>
+      <button class="ctrl-btn" onclick="doRestore(false)">🗑️ Descartar y empezar vacío</button>
+    </div>
+  </div>
+</div>
+
+<!-- PDF CONFIG MODAL -->
+<div class="merge-modal" id="pdfConfigModal">
+  <div class="merge-modal-content pdf-config-form">
+    <div class="report-header">
+      <h3>📄 Exportar documento</h3>
+      <button class="ctrl-btn" onclick="hidePdfConfig()">✕</button>
+    </div>
+
+    <div class="pdf-config-body">
+
+    <label class="pdf-row">
+      <span class="pdf-row-title">Título del examen</span>
+      <input type="text" id="pdfTitle" placeholder="Ej: Examen de Bases de Datos">
+    </label>
+
+    <label class="pdf-check">
+      <input type="checkbox" id="pdfFirstPage" onchange="togglePdfCoverSection()">
+      <span>Primera página para datos personales e instrucciones</span>
+    </label>
+
+    <div class="pdf-cover-title">Opciones de respuestas</div>
+    <label class="pdf-check">
+      <input type="checkbox" id="pdfNoBold">
+      <span>🚫 No marcar en negrilla las respuestas</span>
+    </label>
+    <label class="pdf-check">
+      <input type="checkbox" id="pdfShuffle" onchange="onPdfShuffleToggle()">
+      <span>🔀 Aleatorizar el orden de las respuestas <small>(añade una hoja de soluciones)</small></span>
+    </label>
+
+    <div id="pdfCoverSection">
+      <div class="pdf-cover-box">
+        <div class="pdf-cover-title">Logo</div>
+        <label class="pdf-check">
+          <input type="checkbox" id="pdfLogoCheck">
+          <span>🖼️ Añadir logo</span>
+        </label>
+        <label class="pdf-row" for="pdfLogo">Imagen (PNG/JPG):</label>
+        <div class="pdf-logo-row">
+          <input type="file" id="pdfLogo" accept="image/png,image/jpeg,image/gif">
+          <div class="pdf-logo-preview" id="pdfLogoPreview">Sin imagen seleccionada</div>
+          <label class="pdf-row-title" for="pdfLogoAlign">Alineación</label>
+          <div class="pdf-align">
+            <label class="pdf-check"><input type="radio" name="pdfLogoAlign" value="left" checked> Izquierda</label>
+            <label class="pdf-check"><input type="radio" name="pdfLogoAlign" value="center"> Centrado</label>
+            <label class="pdf-check"><input type="radio" name="pdfLogoAlign" value="right"> Derecha</label>
+          </div>
+        </div>
+
+        <div class="pdf-cover-title">Datos personales</div>
+        <label class="pdf-check">
+          <input type="checkbox" id="pdfName" checked>
+          <span>⤾ Espacio para el <b>Nombre</b></span>
+        </label>
+        <label class="pdf-check">
+          <input type="checkbox" id="pdfDate" checked>
+          <span>🗓️ Espacio para la <b>Fecha</b></span>
+        </label>
+
+        <div class="pdf-cover-title">Descripción del examen</div>
+        <label class="pdf-check">
+          <input type="checkbox" id="pdfDescCheck" checked>
+          <span>📝 Añadir descripción</span>
+        </label>
+        <input type="text" id="pdfDesc" placeholder="Línea de descripción del examen (asignatura, convocatoria, curso…)">
+
+        <div class="pdf-cover-title">Instrucciones</div>
+        <div class="pdf-block">
+          <label class="pdf-check">
+            <input type="checkbox" id="pdfInstr1Check" checked>
+            <span>📋 Instrucciones 1</span>
+          </label>
+          <label class="pdf-row-title" for="pdfInstr1Title">Título</label>
+          <input type="text" id="pdfInstr1Title" value="Instrucciones generales">
+          <label class="pdf-row-title" for="pdfInstr1Body">Contenido</label>
+          <textarea id="pdfInstr1Body" rows="3">No se permite el uso de correctores, móviles, relojes, etc.</textarea>
+        </div>
+        <div class="pdf-block">
+          <label class="pdf-check">
+            <input type="checkbox" id="pdfInstr2Check" checked>
+            <span>📋 Instrucciones 2</span>
+          </label>
+          <label class="pdf-row-title" for="pdfInstr2Title">Título</label>
+          <input type="text" id="pdfInstr2Title" value="Criterios de corrección">
+          <label class="pdf-row-title" for="pdfInstr2Body">Contenido</label>
+          <textarea id="pdfInstr2Body" rows="3">Cada pregunta mal contestada resta …</textarea>
+        </div>
+
+        <div class="pdf-cover-title">Salto de página</div>
+        <label class="pdf-check">
+          <input type="checkbox" id="pdfNoPageBreak">
+          <span>🚫 No saltar de página tras la portada</span>
+        </label>
+      </div>
+    </div>
+
+    </div>
+
+    <div class="qform-actions pdf-config-actions">
+      <button class="ctrl-btn" onclick="hidePdfConfig()">Cancelar</button>
+      <button class="ctrl-btn" onclick="downloadTXT()">💾 TXT</button>
+      <button class="ctrl-btn" onclick="downloadRTF()">💾 RTF</button>
+      <button class="ctrl-btn primary" onclick="generatePDF()">⬇️ PDF</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── GIFT PARSER ───
+const GIFT = {
+
+  splitBlocks(text) {
+    const lines = text.split('\n');
+    const result = { blocks: [], parseErrors: [] };
+    let i = 0;
+
+    while (i < lines.length) {
+      const line = lines[i].trim();
+      const isMeta = !line ||
+        (line.startsWith('//') && !/^\/\/.*::/.test(line)) ||
+        line.startsWith('$CATEGORY') ||
+        line.startsWith('#') ||
+        /^\[[a-z_]{1,20}\]$/i.test(line);
+      if (isMeta) { i++; continue; }
+      let block = '', braceDepth = 0, started = false, extraClose = false;
+      const startLine = i + 1;
+
+      while (i < lines.length) {
+        const l = lines[i];
+        block += l + '\n';
+        for (const ch of l) {
+          if (ch === '{') { braceDepth++; started = true; }
+          else if (ch === '}') braceDepth--;
+        }
+        i++;
+        if (started && braceDepth <= 0) {
+          if (braceDepth < 0) extraClose = true;
+          break;
+        }
+      }
+
+      if (started && braceDepth > 0) {
+        result.parseErrors.push({ line: startLine, message: 'Las llaves { } no están cerradas. Falta el cierre } al final del bloque.', raw: block.trim() });
+      } else {
+        result.blocks.push({ text: block.trim(), startLine, extraClose });
+      }
+    }
+    return result;
+  },
+
+  validate(text) {
+    const { blocks, parseErrors } = this.splitBlocks(text);
+    const errors = [...parseErrors];
+    let valid = 0;
+
+    for (const b of blocks) {
+      const q = this.parseBlock(b.text);
+      if (q) {
+        valid++;
+        if (q.answers && q.answers.length && q.answers.every(a => !a.correct)) {
+          errors.push({ line: b.startLine, message: 'Ninguna opción está marcada como correcta. Usa "=" delante de la respuesta buena.', raw: b.text });
+        }
+        continue;
+      }
+      const msg = this.diagnoseBlock(b);
+      const finalMsg = msg || 'No se pudo interpretar esta pregunta. Revisa el fragmento para localizar qué falla.';
+      errors.push({ line: b.startLine, message: finalMsg, raw: b.text });
+    }
+    return { errors: errors.sort((a, b) => a.line - b.line), valid, invalid: errors.length, total: valid + errors.length };
+  },
+
+  diagnoseBlock(b) {
+    const block = b.text;
+    if (b.extraClose) return 'Hay más llaves de cierre } que de apertura {. Revisa que cada { tenga su }.';
+
+    const bStart = block.indexOf('{');
+    if (bStart === -1) return 'No se encontró un bloque de respuestas { }. El enunciado debe terminar con { opciones }.';
+    const qText = block.substring(0, bStart).replace(/::(.+?)::/g, '').replace(/<[^>]+>/g, '').trim();
+    if (!qText) return 'El enunciado de la pregunta está vacío (texto antes de { es nulo).';
+    if (/[{}]/.test(block.substring(0, bStart)))
+      return 'El enunciado contiene llaves { o } sin escapar (por ejemplo código con llaves). En GIFT deben escaparse como \\{ y \\} porque si no se confunden con el bloque de respuestas.';
+
+    let depth = 0, bEnd = -1;
+    for (let i = bStart; i < block.length; i++) {
+      if (block[i] === '{') depth++;
+      else if (block[i] === '}') { depth--; if (depth === 0) { bEnd = i; break; } }
+    }
+    if (bEnd === -1) return 'Falta la llave de cierre } del bloque de respuestas.';
+
+    const ans = block.substring(bStart + 1, bEnd).trim();
+    if (!ans) return 'El bloque de respuestas { } está vacío. Debe contener al menos una opción.';
+    if (!/^[=~#TFtf]/i.test(ans) && !/^(TRUE|FALSE)/i.test(ans))
+      return 'Las opciones dentro de { } deben empezar con "=" (correcta), "~" (incorrecta), "#" (numérica) o ser T/F.';
+
+    const openP = (qText.match(/\(/g) || []).length, closeP = (qText.match(/\)/g) || []).length;
+    if (openP > 0 && openP !== closeP) return 'Hay un paréntesis sin cerrar en el enunciado.';
+
+    return null;
+  },
+
+  parse(text) {
+    const { blocks } = this.splitBlocks(text);
+    const questions = [];
+    for (const b of blocks) {
+      const q = this.parseBlock(b.text);
+      if (q) questions.push(q);
+    }
+    return questions;
+  },
+
+  parseBlock(block) {
+    const rawBlock = block.trim();
+    let cleanedLines = [];
+    for (const l of block.split('\n')) {
+      if (l.trim().startsWith('//') && !/^\/\/\s*::/.test(l.trim())) continue;
+      cleanedLines.push(l);
+    }
+    block = cleanedLines.join('\n');
+
+    let title = '';
+    const titleMatch = block.match(/^::(.+?)::/);
+    if (titleMatch) { title = titleMatch[1]; block = block.substring(titleMatch[0].length); }
+
+    let braceStart = -1, braceEnd = -1, depth = 0;
+    for (let i = 0; i < block.length; i++) {
+      if (block[i] === '{') { if (depth === 0) braceStart = i; depth++; }
+      else if (block[i] === '}') { depth--; if (depth === 0) { braceEnd = i; break; } }
+    }
+    if (braceStart === -1 || braceEnd === -1) return null;
+
+    let questionText = block.substring(0, braceStart).trim();
+    let answerBlock = block.substring(braceStart + 1, braceEnd).trim();
+    let formatHint = block.substring(braceEnd + 1).trim();
+
+    questionText = questionText.replace(/<[^>]+>/g, '').trim();
+    questionText = questionText.replace(/\\([=~#{}])/g, '$1').trim();
+
+    const answers = this.parseAnswers(answerBlock, formatHint);
+    if (!answers) return null;
+
+    let type = 'mc';
+    if (answers.type === 'tf') type = 'tf';
+    else if (answers.type === 'short') type = 'short';
+
+    return { title, question: questionText, type, answers: answers.choices, correct: answers.correct, feedback: answers.feedback, raw: rawBlock };
+  },
+
+  parseAnswers(block, formatHint) {
+    block = block.trim();
+    if (/^[TFtf]$/.test(block) || /^(TRUE|FALSE)$/i.test(block)) {
+      const isTrue = /^[TF]$/.test(block) ? block.toUpperCase() === 'T' : block.toUpperCase() === 'TRUE';
+      return { type: 'tf', choices: [{ text: 'Verdadero', correct: isTrue }, { text: 'Falso', correct: !isTrue }], correct: isTrue ? 0 : 1, feedback: '' };
+    }
+    if (block.match(/^=/) && !block.match(/~/)) {
+      const choices = block.split('=').filter(s => s.trim()).map(p => ({ text: p.replace(/#.*$/, '').trim(), correct: true }));
+      return { type: 'short', choices, correct: 0, feedback: '' };
+    }
+    if (block.startsWith('#')) {
+      return { type: 'short', choices: [{ text: block.substring(1).trim(), correct: true }], correct: 0, feedback: '' };
+    }
+    const lines = block.split('\n').map(l => l.trim()).filter(l => l);
+    const choices = [];
+    for (const line of lines) {
+      let cleanLine = line;
+      const fbIdx = line.indexOf('//');
+      const lineFeedback = fbIdx !== -1 ? line.substring(fbIdx + 2).trim() : '';
+      if (fbIdx !== -1) cleanLine = line.substring(0, fbIdx).trim();
+      if (cleanLine.startsWith('=')) choices.push({ text: cleanLine.substring(1).replace(/#.*$/, '').trim(), correct: true, feedback: lineFeedback });
+      else if (cleanLine.startsWith('~')) choices.push({ text: cleanLine.substring(1).replace(/#.*$/, '').trim(), correct: false, feedback: lineFeedback });
+      else if (!cleanLine.startsWith('{') && !cleanLine.startsWith('}') && cleanLine) choices.push({ text: cleanLine.replace(/#.*$/, '').trim(), correct: false, feedback: lineFeedback });
+    }
+    if (choices.length === 0) return null;
+    const correctIdx = choices.findIndex(c => c.correct);
+    const allFeedback = choices.map(c => c.feedback).filter(f => f).join(' ');
+    return {
+      type: choices.length === 2 && choices.some(c => c.text.match(/^(verdadero|falso|true|false|cierto|falso)$/i)) ? 'tf' : 'mc',
+      choices, correct: correctIdx >= 0 ? correctIdx : 0, hasCorrect: correctIdx >= 0, feedback: allFeedback
+    };
+  }
+};
+
+// ─── APP STATE ───
+let questions = [];
+let currentIdx = 0;
+let showingSolution = false;
+let shuffledIndices = [];
+let sidebarOpen = false;
+let sidebarBeforeFullscreen;
+let currentFileName = '';
+
+// ─── PERSISTENCE ───
+const STORE_KEY = 'giftviewer_state_v1';
+function saveState() {
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify({
+      questions,
+      currentIdx,
+      currentFileName,
+      valid: (lastReport && lastReport.valid) || questions.length,
+      total: (lastReport && lastReport.total) || questions.length,
+      savedAt: Date.now()
+    }));
+  } catch (e) { /* quota/privacidad: ignorar */ }
+}
+function loadSavedState() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (e) { return null; }
+}
+function clearSavedState() {
+  try { localStorage.removeItem(STORE_KEY); } catch (e) {}
+}
+function pickFileName(name) {
+  const d = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const ymd = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  let base = (name || 'preguntas').replace(/\.(gift|txt)$/i, '').replace(/^\d{4}-\d{2}-\d{2}_/, '');
+  if (!base) base = 'preguntas';
+  return `${ymd}_${base}`;
+}
+
+// ─── SHUFFLE ───
+function shuffleArray(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ─── RENDER ───
+function renderQuestionList() {
+  const list = document.getElementById('questionList');
+  list.innerHTML = '';
+  document.getElementById('qCount').textContent = questions.length;
+  const canEdit = questions.length > 0;
+  document.getElementById('toolEdit').disabled = !canEdit;
+  document.getElementById('toolDelete').disabled = !canEdit;
+  document.getElementById('btnDownload').disabled = !canEdit;
+
+  questions.forEach((q, i) => {
+    const div = document.createElement('div');
+    div.className = 'q-item' + (i === currentIdx ? ' active' : '');
+    const typeLabel = q.type === 'tf' ? 'V/F' : q.type === 'short' ? 'Texto' : `${q.answers.length} op`;
+    const typeClass = q.type === 'tf' ? 'tf' : q.type === 'short' ? 'short' : 'mc';
+    div.innerHTML = `<span class="q-num">${i + 1}</span>${q.question.substring(0, 50)}${q.question.length > 50 ? '…' : ''}<span class="q-type ${typeClass}">${typeLabel}</span>`;
+    div.onclick = () => goToQuestion(i);
+    list.appendChild(div);
+  });
+}
+
+function renderQuestion() {
+  if (questions.length === 0) return;
+
+  const q = questions[currentIdx];
+  const container = document.getElementById('questionContainer');
+
+  document.getElementById('emptyState')?.remove();
+  container.innerHTML = '';
+  showingSolution = false;
+  closeReader();
+
+  const card = document.createElement('div');
+  card.className = 'question-card';
+
+  // Number
+  const num = document.createElement('div');
+  num.className = 'q-number';
+  num.textContent = `PREGUNTA ${currentIdx + 1} / ${questions.length}`;
+  card.appendChild(num);
+
+  // Progress bar
+  const progressContainer = document.createElement('div');
+  progressContainer.className = 'progress-bar-container';
+  const progressBar = document.createElement('div');
+  progressBar.className = 'progress-bar';
+  progressBar.style.width = `${((currentIdx + 1) / questions.length) * 100}%`;
+  progressContainer.appendChild(progressBar);
+  container.appendChild(progressContainer);
+
+  // Question text
+  const qText = document.createElement('div');
+  qText.className = 'q-text';
+  qText.textContent = q.question;
+  const hint = document.createElement('span');
+  hint.className = 'zoom-hint';
+  hint.textContent = '⛶ Pincha para ampliar';
+  hint.title = 'Ver el enunciado a pantalla completa';
+  qText.appendChild(hint);
+  qText.addEventListener('click', () => openReader(q.question));
+  card.appendChild(qText);
+
+  if (q.type === 'tf') {
+    // True/False
+    const tfGrid = document.createElement('div');
+    tfGrid.className = 'tf-answers';
+
+    q.answers.forEach((a, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'tf-btn ' + (a.text.match(/^(verdadero|true|cierto)/i) ? 'true-btn' : 'false-btn');
+      btn.textContent = a.text;
+      btn.dataset.idx = i;
+      btn.onclick = () => handleAnswer(btn, i, q);
+      tfGrid.appendChild(btn);
+    });
+
+    card.appendChild(tfGrid);
+  } else if (q.type === 'short') {
+    // Short answer
+    const shortDiv = document.createElement('div');
+    shortDiv.className = 'short-answer';
+    const correctDiv = document.createElement('div');
+    correctDiv.className = 'correct-text';
+    correctDiv.style.display = 'none';
+    correctDiv.textContent = 'Respuesta: ' + q.answers.map(a => a.text).join(' / ');
+    shortDiv.appendChild(correctDiv);
+
+    const showBtn = document.createElement('button');
+    showBtn.className = 'ctrl-btn primary';
+    showBtn.style.marginTop = '16px';
+    showBtn.textContent = '💡 Mostrar respuesta';
+    showBtn.onclick = () => { correctDiv.style.display = 'block'; showBtn.style.display = 'none'; };
+    shortDiv.appendChild(showBtn);
+
+    card.appendChild(shortDiv);
+  } else {
+    // Multiple choice
+    const grid = document.createElement('div');
+    grid.className = 'answers-grid';
+
+    const shuffled = shuffleArray(q.answers.map((a, i) => ({ ...a, origIdx: i })));
+
+    shuffled.forEach((a, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'answer-btn';
+      const letters = ['A', 'B', 'C', 'D', 'E', 'F'];
+      btn.innerHTML = `<span class="letter">${letters[i] || (i+1)}</span><span>${a.text}</span>`;
+      btn.dataset.correct = a.correct;
+      btn.onclick = () => handleMCAnswer(btn, grid, q);
+      grid.appendChild(btn);
+    });
+
+    card.appendChild(grid);
+  }
+
+  // Feedback
+  if (q.feedback) {
+    const fb = document.createElement('div');
+    fb.className = 'feedback';
+    fb.innerHTML = `<strong>Retroalimentación:</strong> ${q.feedback}`;
+    fb.style.display = 'none';
+    fb.id = 'feedbackBox';
+    card.appendChild(fb);
+  }
+
+  container.appendChild(card);
+
+  // Update controls
+  document.getElementById('controlsBar').style.display = 'flex';
+  document.getElementById('progressInfo').textContent = `${currentIdx + 1} / ${questions.length}`;
+  document.getElementById('btnPrev').disabled = currentIdx === 0;
+  document.getElementById('btnNext').disabled = currentIdx === questions.length - 1;
+
+  // Update sidebar active
+  renderQuestionList();
+}
+
+function handleAnswer(btn, idx, q) {
+  // Disable all tf buttons
+  document.querySelectorAll('.tf-btn').forEach(b => {
+    b.onclick = null;
+    b.style.cursor = 'default';
+    if (b.dataset.idx == q.correct) b.classList.add('show-correct');
+    else if (b === btn && idx !== q.correct) b.classList.add('show-wrong');
+  });
+  document.getElementById('feedbackBox')?.style && (document.getElementById('feedbackBox').style.display = 'block');
+}
+
+function handleMCAnswer(btn, grid, q) {
+  grid.querySelectorAll('.answer-btn').forEach(b => {
+    b.onclick = null;
+    b.style.cursor = 'default';
+    if (b.dataset.correct === 'true') b.classList.add('show-correct');
+    else if (b === btn && b.dataset.correct !== 'true') b.classList.add('show-wrong');
+  });
+  document.getElementById('feedbackBox')?.style && (document.getElementById('feedbackBox').style.display = 'block');
+}
+
+function toggleSolution() {
+  if (questions.length === 0) return;
+
+  const q = questions[currentIdx];
+  showingSolution = !showingSolution;
+
+  if (q.type === 'tf') {
+    document.querySelectorAll('.tf-btn').forEach(b => {
+      const idx = parseInt(b.dataset.idx);
+      if (showingSolution) {
+        b.onclick = null;
+        b.style.cursor = 'default';
+        if (idx === q.correct) b.classList.add('show-correct');
+        else b.classList.add('show-wrong');
+      } else {
+        b.classList.remove('show-correct', 'show-wrong');
+      }
+    });
+  } else if (q.type === 'mc') {
+    document.querySelectorAll('.answer-btn').forEach(b => {
+      if (showingSolution) {
+        b.onclick = null;
+        b.style.cursor = 'default';
+        if (b.dataset.correct === 'true') b.classList.add('show-correct');
+        else b.classList.add('show-wrong');
+      } else {
+        b.classList.remove('show-correct', 'show-wrong');
+      }
+    });
+  }
+
+  // Show/hide feedback
+  const fb = document.getElementById('feedbackBox');
+  if (fb) fb.style.display = showingSolution ? 'block' : 'none';
+}
+
+// ─── FULLSCREEN ───
+function toggleFullscreen() {
+  if (document.fullscreenElement) {
+    document.exitFullscreen();
+  } else {
+    document.documentElement.requestFullscreen().catch(() => {});
+  }
+}
+
+document.addEventListener('fullscreenchange', () => {
+  const fs = !!document.fullscreenElement;
+  document.body.classList.toggle('fullscreen-active', fs);
+  const sb = document.getElementById('sidebar');
+  if (fs) {
+    sidebarBeforeFullscreen = sidebarOpen;
+    if (sidebarOpen) {
+      sidebarOpen = false;
+      sb.classList.add('collapsed');
+    }
+  } else if (sidebarBeforeFullscreen !== undefined) {
+    if (sidebarBeforeFullscreen) {
+      sidebarOpen = true;
+      sb.classList.remove('collapsed');
+    }
+    sidebarBeforeFullscreen = undefined;
+  }
+  const btn = document.getElementById('btnFullscreen');
+  if (btn) btn.innerHTML = fs
+    ? '⛶ Salir de pantalla completa <span class="kbd">F</span>'
+    : '⛶ Pantalla completa <span class="kbd">F</span>';
+});
+
+// ─── NAVIGATION ───
+function nextQuestion() {
+  if (currentIdx < questions.length - 1) {
+    currentIdx++;
+    renderQuestion();
+  }
+}
+
+function prevQuestion() {
+  if (currentIdx > 0) {
+    currentIdx--;
+    renderQuestion();
+  }
+}
+
+function goToQuestion(idx) {
+  currentIdx = idx;
+  renderQuestion();
+  if (window.innerWidth < 768) toggleSidebar();
+}
+
+function toggleSidebar() {
+  const sb = document.getElementById('sidebar');
+  sidebarOpen = !sidebarOpen;
+  sb.classList.toggle('collapsed');
+}
+
+// ─── THEME ───
+function toggleTheme() {
+  const body = document.body;
+  body.classList.toggle('light');
+  const isLight = body.classList.contains('light');
+  document.getElementById('themeToggle').textContent = isLight ? '☀️' : '🌙';
+  try { localStorage.setItem('gift-theme', isLight ? 'light' : 'dark'); } catch(e) {}
+}
+
+(function initTheme() {
+  let saved = '';
+  try { saved = localStorage.getItem('gift-theme') || ''; } catch(e) {}
+  if (saved !== 'dark') {
+    document.body.classList.add('light');
+    document.getElementById('themeToggle').textContent = '☀️';
+  }
+})();
+
+// ─── ANSWER LAYOUT (2 por línea / 1 por línea) ───
+function updateLayoutBtn() {
+  const perLine = document.body.classList.contains('oneparline') ? 1 : 2;
+  document.getElementById('btnLayout').innerHTML = perLine === 2
+    ? '⊞ 2 por línea'
+    : '⊟ 1 por línea';
+}
+
+function toggleAnswerLayout() {
+  document.body.classList.toggle('oneparline');
+  updateLayoutBtn();
+  try { localStorage.setItem('gift-layout', document.body.classList.contains('oneparline') ? '1' : '2'); } catch(e) {}
+}
+
+(function initLayout() {
+  let saved = '2';
+  try { saved = localStorage.getItem('gift-layout') || '2'; } catch(e) {}
+  if (saved === '1') document.body.classList.add('oneparline');
+  updateLayoutBtn();
+})();
+
+// ─── EDIT RAW (pestaña del formulario) ───
+function qfTab(name) {
+  const form = document.getElementById('qfPaneForm');
+  const raw = document.getElementById('qfPaneRaw');
+  const btnForm = document.getElementById('qfTabFormBtn');
+  const btnRaw = document.getElementById('qfTabRawBtn');
+  if (name === 'raw') {
+    form.style.display = 'none';
+    raw.style.display = 'block';
+    btnForm.classList.remove('active');
+    btnRaw.classList.add('active');
+    loadRawForEdit();
+  } else {
+    raw.style.display = 'none';
+    form.style.display = 'block';
+    btnRaw.classList.remove('active');
+    btnForm.classList.add('active');
+  }
+}
+
+function loadRawForEdit() {
+  if (!questions.length) return;
+  const q = questions[currentIdx];
+  document.getElementById('rawOutput').value = q.raw || giftFromQuestion(q) || '';
+  document.getElementById('rawStatus').style.display = 'none';
+  document.getElementById('btnCopyRaw').textContent = '📋 Copiar';
+}
+
+function saveRaw() {
+  const status = document.getElementById('rawStatus');
+  const txt = document.getElementById('rawOutput').value;
+  const rep = GIFT.validate(txt);
+  if (rep.errors.length) {
+    status.textContent = 'No se guarda: ' + rep.errors.length + ' error(es). Ej: ' + rep.errors[0].message;
+    status.className = 'editor-status error';
+    status.style.display = 'block';
+    return;
+  }
+  const parsed = GIFT.parse(txt);
+  if (parsed.length !== 1) {
+    status.textContent = 'El texto debe contener exactamente 1 pregunta.';
+    status.className = 'editor-status error';
+    status.style.display = 'block';
+    return;
+  }
+  questions[currentIdx] = parsed[0];
+  status.style.display = 'none';
+  hideQForm();
+  renderQuestion();
+  saveState();
+}
+
+function copyRaw() {
+  const out = document.getElementById('rawOutput');
+  const btn = document.getElementById('btnCopyRaw');
+  out.select();
+  navigator.clipboard.writeText(out.value).then(() => {
+    btn.textContent = '✓ Copiado';
+    setTimeout(() => { btn.textContent = '📋 Copiar'; }, 1500);
+  }).catch(() => {
+    document.execCommand('copy');
+    btn.textContent = '✓ Copiado';
+    setTimeout(() => { btn.textContent = '📋 Copiar'; }, 1500);
+  });
+}
+
+// ─── EDIT / FORMS / EXPORT ───
+// Escapa caracteres especiales en el ENUNCIADO (el parser los desescapa: \(=~#))
+// En las opciones no se escapan (el parser de respuestas no desescapa; texto plano es más fiel)
+function escGift(s) {
+  return String(s).replace(/\\/g, '\\\\').replace(/=/g, '\\=').replace(/~/g, '\\~').replace(/#/g, '\\#');
+}
+
+function giftFromQuestion(q) {
+  const head = (q.title ? '::' + q.title.replace(/:/g, '\\:') + ':: ' : '') + escGift(q.question);
+  if (q.type === 'tf') {
+    const t = q.answers[q.correct] ? q.answers[q.correct].text : '';
+    return head + ' {' + (/^(verdadero|true|cierto)/i.test(t) ? 'T' : 'F') + '}';
+  }
+  if (q.type === 'short') {
+    return head + ' { ' + q.answers.map(a => '=' + (a.text || '')).join(' ') + ' }';
+  }
+  const parts = q.answers.map(a => (a.correct ? '=' : '~') + (a.text || '') + (a.feedback ? ' // ' + a.feedback : ''));
+  return head + ' {\n' + parts.join('\n') + '\n}';
+}
+
+// --- Full GIFT editor ---
+function openEditor() {
+  if (questions.length) {
+    document.getElementById('rawAllOutput').value = questions.map(q => q.raw || giftFromQuestion(q)).join('\n\n') + '\n';
+  } else {
+    document.getElementById('rawAllOutput').value = '';
+  }
+  document.getElementById('rawAllStatus').style.display = 'none';
+  document.getElementById('rawAllModal').classList.add('open');
+}
+
+function hideRawAll() {
+  document.getElementById('rawAllModal').classList.remove('open');
+}
+
+let pendingDestIdx = 0;
+
+function saveAllGift() {
+  const txt = document.getElementById('rawAllOutput').value;
+  lastReport = GIFT.validate(txt);
+  const status = document.getElementById('rawAllStatus');
+  if (lastReport.errors.length) {
+    status.textContent = 'No se guarda: ' + lastReport.errors.length + ' error(es) de sintaxis. Revisa el reporte.';
+    status.className = 'editor-status error';
+    status.style.display = 'block';
+    showReport();
+    return;
+  }
+  const prevQuestion = questions[currentIdx] ? questions[currentIdx].question : '';
+  questions = GIFT.parse(txt);
+  if (currentIdx >= questions.length) currentIdx = Math.max(0, questions.length - 1);
+  document.getElementById('qCount').textContent = questions.length;
+  pendingDestIdx = 0;
+  if (prevQuestion) {
+    const ni = questions.findIndex(q => q.question === prevQuestion);
+    if (ni !== -1) pendingDestIdx = ni;
+  }
+  document.getElementById('rawAllModal').classList.remove('open');
+  saveState();
+  if (!questions.length) {
+    renderEmpty();
+  } else {
+    document.getElementById('destModal').classList.add('open');
+  }
+}
+
+function doDestGo(toStart) {
+  currentIdx = toStart ? 0 : pendingDestIdx;
+  pendingDestIdx = 0;
+  document.getElementById('destModal').classList.remove('open');
+  renderQuestion();
+  saveState();
+}
+
+function hideDest() {
+  document.getElementById('destModal').classList.remove('open');
+  renderQuestion();
+}
+
+document.getElementById('rawAllModal').addEventListener('click', function(e) {
+  if (e.target === this) hideRawAll();
+});
+document.getElementById('destModal').addEventListener('click', function(e) {
+  if (e.target === this) hideDest();
+});
+
+// --- Add / edit / delete question ---
+function renderEmpty() {
+  questions = [];
+  currentIdx = 0;
+  const container = document.getElementById('questionContainer');
+  container.innerHTML = '<div class="empty-state" id="emptyState">' +
+    '<div class="icon">📝</div><h2>Carga un archivo GIFT</h2>' +
+    '<p>Haz clic en el botón "Añadir .gift" o arrastra un archivo aquí</p>' +
+    '<button class="ctrl-btn primary" onclick="addFirstQuestion()" title="Empezar un examen desde cero">➕ Añadir pregunta manualmente</button>' +
+    '<div class="attribution">Autor: <a href="https://jfsanchez.es" target="_blank" rel="noopener">Jose Sanchez</a> · © 2026 · Creada con OpenCode y Big Pickle</div>' +
+    '</div>';
+  document.getElementById('controlsBar').style.display = 'none';
+  document.getElementById('qCount').textContent = 0;
+  document.getElementById('sidebar').classList.add('collapsed');
+  sidebarOpen = false;
+  renderQuestionList();
+}
+
+function deleteCurrent() {
+  if (!questions.length) return;
+  questions.splice(currentIdx, 1);
+  if (!questions.length) { renderEmpty(); saveState(); return; }
+  if (currentIdx > questions.length - 1) currentIdx = questions.length - 1;
+  renderQuestion();
+  saveState();
+}
+
+function editCurrent() {
+  if (!questions.length) return;
+  openEditForm(currentIdx);
+}
+
+function editCurrentRaw() {
+  if (!questions.length) return;
+  openEditForm(currentIdx);
+  qfTab('raw');
+}
+
+function addFirstQuestion() {
+  if (!document.body.classList.contains('fullscreen-active')) {
+    sidebarOpen = true;
+    document.getElementById('sidebar').classList.remove('collapsed');
+  }
+  openEditForm(null);
+}
+
+let editingIndex = null;
+let currentCorrect = 0;
+
+function openEditForm(idx) {
+  const isEdit = (typeof idx === 'number');
+  const q = isEdit ? questions[idx] : null;
+  editingIndex = isEdit ? idx : null;
+  document.getElementById('qformTitle').textContent = isEdit ? '✏️ Editar pregunta' : '➕ Añadir pregunta';
+  document.getElementById('qfEnunciado').value = q ? q.question : '';
+  currentCorrect = 0;
+  const opts = [];
+  if (q) {
+    opts.push(...q.answers.map(a => a.text));
+    const ci = q.answers.findIndex(a => a.correct);
+    if (ci !== -1) currentCorrect = ci;
+  }
+  renderQFormOptions(opts);
+  document.getElementById('qfStatus').style.display = 'none';
+  qfTab('form');
+  if (isEdit) loadRawForEdit();
+  document.getElementById('qformModal').classList.add('open');
+}
+
+function renderQFormOptions(opts) {
+  const box = document.getElementById('qfOptions');
+  box.innerHTML = '';
+  for (let i = 0; i < 4; i++) {
+    const row = document.createElement('label');
+    row.className = 'qform-opt-row';
+    row.innerHTML = '<input type="radio" name="qfCorrect" value="' + i + '"' + (i === currentCorrect ? ' checked' : '') + '>' +
+      '<span class="qform-letter">' + String.fromCharCode(65 + i) + '</span>';
+    const t = document.createElement('input');
+    t.type = 'text';
+    t.value = (opts && opts[i]) || '';
+    t.placeholder = 'Opción ' + String.fromCharCode(65 + i);
+    row.appendChild(t);
+    const ok = document.createElement('span');
+    ok.className = 'qform-opt-ok';
+    ok.id = 'qfOk' + i;
+    ok.textContent = '✓';
+    ok.style.display = (i === currentCorrect) ? 'inline' : 'none';
+    row.appendChild(ok);
+    box.appendChild(row);
+  }
+}
+
+document.getElementById('qfOptions').addEventListener('change', (e) => {
+  if (e.target.type === 'radio') {
+    currentCorrect = parseInt(e.target.value, 10);
+    document.querySelectorAll('#qfOptions .qform-opt-ok').forEach(el => el.style.display = 'none');
+    const ok = document.getElementById('qfOk' + currentCorrect);
+    if (ok) ok.style.display = 'inline';
+  }
+});
+
+function hideQForm() {
+  document.getElementById('qformModal').classList.remove('open');
+}
+
+function saveQForm() {
+  const status = document.getElementById('qfStatus');
+  const en = document.getElementById('qfEnunciado').value.trim();
+  if (!en) {
+    status.textContent = 'Escribe el enunciado.';
+    status.className = 'editor-status error';
+    status.style.display = 'block';
+    return;
+  }
+  const inputs = document.querySelectorAll('#qfOptions input[type="text"]');
+  const opts = Array.from(inputs).map(i => i.value.trim());
+  const filledCount = opts.filter(o => o).length;
+  if (filledCount < 2) {
+    status.textContent = 'Rellena al menos 2 opciones.';
+    status.className = 'editor-status error';
+    status.style.display = 'block';
+    return;
+  }
+  if (!opts[currentCorrect]) {
+    status.textContent = 'Marca la opción correcta (debe tener texto).';
+    status.className = 'editor-status error';
+    status.style.display = 'block';
+    return;
+  }
+  let g = escGift(en) + ' {\n';
+  opts.forEach((o, i) => { if (o) g += (i === currentCorrect ? '=' : '~') + o + '\n'; });
+  g += '}';
+  const parsed = GIFT.parse(g);
+  if (parsed.length !== 1) {
+    status.textContent = 'No se pudo generar la pregunta. Revisa el texto.';
+    status.className = 'editor-status error';
+    status.style.display = 'block';
+    return;
+  }
+  if (editingIndex === null) {
+    const at = questions.length ? Math.min(currentIdx + 1, questions.length) : 0;
+    questions.splice(at, 0, parsed[0]);
+    currentIdx = at;
+  } else {
+    questions[editingIndex] = parsed[0];
+    currentIdx = editingIndex;
+  }
+  if (!document.body.classList.contains('fullscreen-active') && !sidebarOpen) {
+    sidebarOpen = true;
+    document.getElementById('sidebar').classList.remove('collapsed');
+  }
+  hideQForm();
+  renderQuestion();
+  saveState();
+}
+
+document.getElementById('qformModal').addEventListener('click', function(e) {
+  if (e.target === this) hideQForm();
+});
+
+// --- Download ---
+function toggleDownloadMenu(e) {
+  if (e) e.stopPropagation();
+  document.getElementById('downloadMenu').classList.toggle('open');
+}
+function closeDownloadMenu() {
+  document.getElementById('downloadMenu').classList.remove('open');
+}
+document.addEventListener('click', (e) => {
+  if (!document.getElementById('downloadMenu')?.contains(e.target)) closeDownloadMenu();
+});
+
+function downloadGift() {
+  if (!questions.length) return;
+  const text = questions.map(q => q.raw || giftFromQuestion(q)).join('\n\n') + '\n';
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = pickFileName(currentFileName) + '.gift';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  closeDownloadMenu();
+}
+
+// ─── FULLSCREEN READER ───
+function openReader(text) {
+  const overlay = document.getElementById('readerOverlay');
+  document.getElementById('readerText').textContent = text;
+  document.getElementById('readerWrapBtn').textContent = '📏 Text wrap: ON';
+  overlay.classList.add('wrap');
+  overlay.classList.add('open');
+}
+
+function toggleReaderWrap(ev) {
+  if (ev) ev.stopPropagation();
+  const overlay = document.getElementById('readerOverlay');
+  const btn = document.getElementById('readerWrapBtn');
+  const on = overlay.classList.toggle('wrap');
+  btn.textContent = on ? '📏 Text wrap: ON' : '📏 Text wrap: OFF';
+}
+
+function closeReader() {
+  document.getElementById('readerOverlay').classList.remove('open');
+}
+
+document.getElementById('readerOverlay').addEventListener('click', closeReader);
+
+// ─── FILE HANDLING ───
+let lastReport = null;
+
+function computeInsertIndex(pos) {
+  if (!questions.length) return 0;
+  switch (pos) {
+    case 'inicio': return 0;
+    case 'medio': return Math.min(currentIdx + 1, questions.length);
+    default: return questions.length;
+  }
+}
+
+let pendingGiftText = '';
+let pendingGiftName = '';
+
+function doMerge(pos) {
+  document.getElementById('mergeModal').classList.remove('open');
+  processGiftFile(pendingGiftText, pendingGiftName, pos);
+  pendingGiftText = '';
+  pendingGiftName = '';
+}
+
+function cancelMerge() {
+  document.getElementById('mergeModal').classList.remove('open');
+  pendingGiftText = '';
+  pendingGiftName = '';
+}
+
+function processGiftFile(text, fileName, pos) {
+  lastReport = GIFT.validate(text);
+  const newQs = GIFT.parse(text);
+  const insertAt = computeInsertIndex(pos);
+  const wasEmpty = questions.length === 0;
+
+  if (wasEmpty) {
+    questions = newQs;
+  } else {
+    questions.splice(insertAt, 0, ...newQs);
+  }
+
+  document.getElementById('fileInfo').textContent =
+    `${fileName} (${lastReport.valid} de ${lastReport.total}) — ${questions.length} preguntas en total`;
+  document.getElementById('qCount').textContent = questions.length;
+  currentFileName = fileName;
+
+  if (lastReport.errors.length) {
+    document.getElementById('reportBadge').textContent = lastReport.errors.length;
+    document.getElementById('reportBadge').classList.add('visible');
+    showReport();
+  } else {
+    document.getElementById('reportBadge').classList.remove('visible');
+  }
+
+  if (questions.length > 0) {
+    currentIdx = wasEmpty ? 0 : insertAt;
+    // Mostrar el listado al cargar el fichero (salvo en pantalla completa)
+    if (!document.body.classList.contains('fullscreen-active') && !sidebarOpen) {
+      sidebarOpen = true;
+      document.getElementById('sidebar').classList.remove('collapsed');
+    }
+    renderQuestion();
+  } else {
+    document.getElementById('sidebar').classList.add('collapsed');
+    sidebarOpen = false;
+    renderQuestionList();
+  }
+  saveState();
+}
+
+document.getElementById('giftFile').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  e.target.value = '';
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    pendingGiftText = ev.target.result;
+    pendingGiftName = file.name;
+    if (questions.length === 0) {
+      processGiftFile(pendingGiftText, pendingGiftName, 'final');
+    } else {
+      document.getElementById('mergeFileName').textContent = file.name;
+      document.getElementById('mergeModal').classList.add('open');
+    }
+  };
+  reader.readAsText(file);
+});
+
+document.getElementById('mergeModal').addEventListener('click', function(e) {
+  if (e.target === this) cancelMerge();
+});
+
+function showReport() {
+  if (!lastReport) return;
+  document.getElementById('reportSummary').innerHTML =
+    `Total: <strong>${lastReport.total}</strong> bloques detectados — ` +
+    `<span class="ok-count">${lastReport.valid} válidos</span>, ` +
+    `<span class="err-count">${lastReport.invalid} con error</span>.`;
+  const list = document.getElementById('reportList');
+  list.innerHTML = '';
+  if (lastReport.errors.length === 0) {
+    list.innerHTML = '<p style="text-align:center;color:var(--correct);padding:40px;font-size:1.1rem">✔ No se encontraron errores de sintaxis.</p>';
+  } else {
+    lastReport.errors.forEach((e, idx) => {
+      const item = document.createElement('div');
+      item.className = 'report-item';
+      item.innerHTML = `
+        <div class="report-item-header" onclick="this.parentElement.classList.toggle('open')">
+          <span class="report-item-line">Línea ${e.line}</span>
+          <span class="report-item-msg">${e.message}</span>
+          <span class="report-item-arrow">▼</span>
+        </div>
+        <div class="report-item-raw"><pre>${escapeHtml(e.raw)}</pre></div>`;
+      list.appendChild(item);
+    });
+    // Auto-abrir el primer error para que el fragmento se vea sin hacer clic
+    const first = list.querySelector('.report-item');
+    if (first) first.classList.add('open');
+  }
+  document.getElementById('reportModal').classList.add('open');
+}
+
+function hideReport() {
+  document.getElementById('reportModal').classList.remove('open');
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function exportDocument() {
+  if (!questions.length) return;
+  closeDownloadMenu();
+  document.getElementById('pdfConfigModal').classList.add('open');
+}
+
+function hidePdfConfig() {
+  document.getElementById('pdfConfigModal').classList.remove('open');
+}
+
+function togglePdfCoverSection() {
+  const on = document.getElementById('pdfFirstPage').checked;
+  document.getElementById('pdfCoverSection').style.display = on ? 'block' : 'none';
+}
+
+function onPdfShuffleToggle() {
+  const shuffle = document.getElementById('pdfShuffle');
+  const noBold = document.getElementById('pdfNoBold');
+  if (shuffle.checked) {
+    noBold.dataset.prev = noBold.checked;
+    noBold.checked = true;
+    noBold.disabled = true;
+  } else {
+    noBold.disabled = false;
+    noBold.checked = (noBold.dataset.prev === 'true');
+  }
+}
+
+document.getElementById('pdfConfigModal').addEventListener('click', function(e) {
+  if (e.target === this) hidePdfConfig();
+});
+
+let pdfLogoDataUrl = '';
+
+document.getElementById('pdfLogo').addEventListener('change', function() {
+  const f = this.files[0];
+  const preview = document.getElementById('pdfLogoPreview');
+  const check = document.getElementById('pdfLogoCheck');
+  if (!f) { pdfLogoDataUrl = ''; if (preview) preview.textContent = 'Sin imagen seleccionada'; return; }
+  const r = new FileReader();
+  r.onload = () => {
+    pdfLogoDataUrl = r.result;
+    if (preview) preview.innerHTML = '<img src="' + pdfLogoDataUrl + '" alt="Logo">';
+    if (check) check.checked = true;
+  };
+  r.readAsDataURL(f);
+});
+
+function generatePDF() {
+  if (!questions.length) return;
+  hidePdfConfig();
+  const el = document.getElementById('printArea');
+  const esc = escapeHtml;
+  let h = '';
+
+  const firstPage = document.getElementById('pdfFirstPage').checked;
+
+  if (firstPage) {
+    h += '<div class="print-cover">';
+    if (document.getElementById('pdfLogoCheck').checked && pdfLogoDataUrl) {
+      const align = (document.querySelector('input[name="pdfLogoAlign"]:checked') || {}).value || 'left';
+      h += '<div class="print-logo ' + align + '"><img src="' + pdfLogoDataUrl + '" alt="Logo"></div>';
+    }
+    h += '<h1>' + esc(document.getElementById('pdfTitle').value.trim() || '⚡ GIFTviewer — Examen') + '</h1>';
+    const nameOn = document.getElementById('pdfName').checked;
+    const dateOn = document.getElementById('pdfDate').checked;
+    if (nameOn || dateOn) {
+      h += '<div class="print-fields-row">';
+      if (nameOn) h += '<div class="print-field-name">Nombre:</div>';
+      if (dateOn) h += '<div class="print-field-date">Fecha:</div>';
+      h += '</div>';
+    }
+    if (document.getElementById('pdfDescCheck').checked) {
+      const d = document.getElementById('pdfDesc').value.trim();
+      if (d) h += '<div class="print-desc">' + esc(d) + '</div>';
+    }
+    if (document.getElementById('pdfInstr1Check').checked) {
+      const t = document.getElementById('pdfInstr1Title').value.trim();
+      const b = document.getElementById('pdfInstr1Body').value.trim();
+      if (t || b) {
+        h += '<div class="print-instr">';
+        if (t) h += '<div class="print-instr-title">' + esc(t) + '</div>';
+        if (b) h += '<div class="print-instr-body">' + esc(b) + '</div>';
+        h += '</div>';
+      }
+    }
+    if (document.getElementById('pdfInstr2Check').checked) {
+      const t = document.getElementById('pdfInstr2Title').value.trim();
+      const b = document.getElementById('pdfInstr2Body').value.trim();
+      if (t || b) {
+        h += '<div class="print-instr">';
+        if (t) h += '<div class="print-instr-title">' + esc(t) + '</div>';
+        if (b) h += '<div class="print-instr-body">' + esc(b) + '</div>';
+        h += '</div>';
+      }
+    }
+    h += '</div>';
+    if (!document.getElementById('pdfNoPageBreak').checked) {
+      h += '<div class="print-pagebreak"></div>';
+    }
+  } else {
+    h += '<h1>' + esc(document.getElementById('pdfTitle').value.trim() || '⚡ GIFTviewer — Listado de preguntas') + '</h1>';
+  }
+
+  h += '<p class="print-meta">' + questions.length + ' preguntas — generado el ' + new Date().toLocaleString() + '</p>';
+
+  const noBold = document.getElementById('pdfNoBold').checked;
+  const shuffle = document.getElementById('pdfShuffle').checked;
+  const solution = [];
+
+  const shuffleArr = (arr) => {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  };
+
+  questions.forEach((q, i) => {
+    h += '<div class="print-q">';
+    h += '<div class="print-q-num">Pregunta ' + (i + 1) + '</div>';
+    h += '<div class="print-q-text">' + esc(q.question) + '</div>';
+    h += '<div class="print-answers">';
+    if (q.type === 'tf') {
+      let correctIdx = q.correct;
+      let opts = ['Verdadero', 'Falso'];
+      if (shuffle) {
+        const order = shuffleArr([0, 1]);
+        opts = order.map(i => ['Verdadero', 'Falso'][i]);
+        correctIdx = order.indexOf(q.correct);
+      }
+      opts.forEach((txt, idx) => {
+        h += '<div class="print-opt' + (idx === correctIdx && !noBold ? ' corr' : '') + '">' + txt + '</div>';
+      });
+      solution.push({ n: i + 1, a: String.fromCharCode(65 + correctIdx) });
+    } else if (q.type === 'short') {
+      const answers = shuffle ? shuffleArr(q.answers) : q.answers;
+      h += '<div class="print-opt' + (noBold ? '' : ' corr') + '">Respuesta: ' + answers.map(a => '“' + esc(a.text) + '”').join(' / ') + '</div>';
+      solution.push({ n: i + 1, a: '—' });
+    } else {
+      let answers = shuffle ? shuffleArr(q.answers) : q.answers;
+      let correctIdx = answers.findIndex(a => a.correct);
+      answers.forEach((a, idx) => {
+        h += '<div class="print-opt' + (a.correct && !noBold ? ' corr' : '') + '">' + String.fromCharCode(65 + idx) + '. ' + esc(a.text) + '</div>';
+      });
+      solution.push({ n: i + 1, a: correctIdx === -1 ? '—' : String.fromCharCode(65 + correctIdx) });
+    }
+    h += '</div></div>';
+  });
+
+  if (shuffle) {
+    h += '<div class="print-pagebreak"></div>';
+    h += '<h1 class="print-sol-title">Hoja de soluciones</h1>';
+    h += '<div class="print-sol">';
+    solution.forEach(s => {
+      h += '<div class="print-sol-item"><span class="print-sol-num">' + s.n + '.</span> <span class="print-sol-ans">' + s.a + '</span></div>';
+    });
+    h += '</div>';
+  }
+
+  el.innerHTML = h;
+  // Sugerir nombre del PDF en el diálogo de guardar (usa el <title>)
+  document.title = pickFileName(currentFileName) + '.pdf';
+  window.addEventListener('afterprint', () => { document.title = 'GIFTviewer'; }, { once: true });
+  window.print();
+}
+
+// --- Exportar TXT ---
+function downloadTXT() {
+  if (!questions.length) return;
+  hidePdfConfig();
+  const noBold = document.getElementById('pdfNoBold').checked;
+  const shuffle = document.getElementById('pdfShuffle').checked;
+  const title = document.getElementById('pdfTitle').value.trim() || 'GIFTviewer — Examen';
+  const shuffleArr = (a) => {
+    const arr = a.slice();
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  };
+  const lines = [];
+  lines.push(title);
+  lines.push(questions.length + ' preguntas — generado el ' + new Date().toLocaleString());
+  lines.push('');
+  const solution = [];
+  questions.forEach((q, i) => {
+    lines.push('Pregunta ' + (i + 1));
+    lines.push(q.question);
+    if (q.type === 'tf') {
+      let correctIdx = q.correct;
+      let opts = ['Verdadero', 'Falso'];
+      if (shuffle) {
+        const order = shuffleArr([0, 1]);
+        opts = order.map(k => ['Verdadero', 'Falso'][k]);
+        correctIdx = order.indexOf(q.correct);
+      }
+      opts.forEach((txt, idx) => {
+        const isCorr = (idx === correctIdx && !noBold);
+        lines.push('   ' + (isCorr ? '**' + txt + '**' : txt));
+      });
+      solution.push({ n: i + 1, a: String.fromCharCode(65 + correctIdx) });
+    } else if (q.type === 'short') {
+      const answers = shuffle ? shuffleArr(q.answers) : q.answers;
+      const txt = 'Respuesta: ' + answers.map(a => '"' + a.text + '"').join(' / ');
+      lines.push('   ' + (noBold ? txt : '**' + txt + '**'));
+      solution.push({ n: i + 1, a: '—' });
+    } else {
+      let answers = shuffle ? shuffleArr(q.answers) : q.answers;
+      let correctIdx = answers.findIndex(a => a.correct);
+      answers.forEach((a, idx) => {
+        const txt = String.fromCharCode(65 + idx) + '. ' + a.text;
+        lines.push('   ' + (a.correct && !noBold ? '**' + txt + '**' : txt));
+      });
+      solution.push({ n: i + 1, a: correctIdx === -1 ? '—' : String.fromCharCode(65 + correctIdx) });
+    }
+    lines.push('');
+  });
+  if (shuffle) {
+    lines.push('Hoja de soluciones');
+    solution.forEach(s => lines.push(s.n + '. ' + s.a));
+  }
+  const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = pickFileName(currentFileName) + '.txt';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+
+// --- Exportar RTF ---
+function rtfEsc(s) {
+  let out = '';
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    const code = s.charCodeAt(i);
+    if (c === '\\') out += '\\\\';
+    else if (c === '{') out += '\\{';
+    else if (c === '}') out += '\\}';
+    else if (c === '\n' || c === '\r') out += '\\par ';
+    else if (code < 32) out += '\\u' + code + '?';
+    else if (code > 127) out += '\\u' + code + '?';
+    else out += c;
+  }
+  return out;
+}
+
+function downloadRTF() {
+  if (!questions.length) return;
+  hidePdfConfig();
+  const noBold = document.getElementById('pdfNoBold').checked;
+  const shuffle = document.getElementById('pdfShuffle').checked;
+  const title = document.getElementById('pdfTitle').value.trim() || 'GIFTviewer — Examen';
+  const shuffleArr = (a) => {
+    const arr = a.slice();
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  };
+  let r = '{\\rtf1\\ansi\\ansicpg1252\\deff0 {\\fonttbl{\\f0 Arial;}}\\viewkind4\\uc1\\pard';
+  r += '\\b ' + rtfEsc(title) + '\\b0\\par ';
+  r += rtfEsc(questions.length + ' preguntas — generado el ' + new Date().toLocaleString()) + '\\par \\par ';
+  const solution = [];
+  questions.forEach((q, i) => {
+    r += '\\b Pregunta ' + (i + 1) + '\\b0\\par ';
+    r += rtfEsc(q.question) + '\\par ';
+    if (q.type === 'tf') {
+      let correctIdx = q.correct;
+      let opts = ['Verdadero', 'Falso'];
+      if (shuffle) {
+        const order = shuffleArr([0, 1]);
+        opts = order.map(k => ['Verdadero', 'Falso'][k]);
+        correctIdx = order.indexOf(q.correct);
+      }
+      opts.forEach((txt, idx) => {
+        if (idx === correctIdx && !noBold) r += '\\b ' + rtfEsc(txt) + '\\b0';
+        else r += rtfEsc(txt);
+        r += '\\par ';
+      });
+      solution.push({ n: i + 1, a: String.fromCharCode(65 + correctIdx) });
+    } else if (q.type === 'short') {
+      const answers = shuffle ? shuffleArr(q.answers) : q.answers;
+      const txt = 'Respuesta: ' + answers.map(a => '"' + a.text + '"').join(' / ');
+      if (noBold) r += rtfEsc(txt) + '\\par ';
+      else r += '\\b ' + rtfEsc(txt) + '\\b0\\par ';
+      solution.push({ n: i + 1, a: '—' });
+    } else {
+      let answers = shuffle ? shuffleArr(q.answers) : q.answers;
+      let correctIdx = answers.findIndex(a => a.correct);
+      answers.forEach((a, idx) => {
+        const txt = String.fromCharCode(65 + idx) + '. ' + a.text;
+        if (a.correct && !noBold) r += '\\b ' + rtfEsc(txt) + '\\b0';
+        else r += rtfEsc(txt);
+        r += '\\par ';
+      });
+      solution.push({ n: i + 1, a: correctIdx === -1 ? '—' : String.fromCharCode(65 + correctIdx) });
+    }
+    r += '\\par ';
+  });
+  if (shuffle) {
+    r += '\\b Hoja de soluciones\\b0\\par ';
+    solution.forEach(s => r += rtfEsc(s.n + '. ' + s.a) + '\\par ');
+  }
+  r += '}';
+  const blob = new Blob([r], { type: 'application/rtf' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = pickFileName(currentFileName) + '.rtf';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+
+document.getElementById('reportModal').addEventListener('click', function(e) {
+  if (e.target === this) hideReport();
+});
+
+// Drag and drop
+document.body.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
+document.body.addEventListener('drop', (e) => {
+  e.preventDefault();
+  const file = e.dataTransfer.files[0];
+  if (file) {
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    document.getElementById('giftFile').files = dt.files;
+    document.getElementById('giftFile').dispatchEvent(new Event('change'));
+  }
+});
+
+// ─── SEARCH BOX ───
+const searchBox = document.getElementById('searchBox');
+const searchInput = document.getElementById('searchInput');
+const searchResults = document.getElementById('searchResults');
+let searchActive = 0;
+
+function openSearch() {
+  if (!questions.length || document.body.classList.contains('fullscreen-active')) return;
+  searchInput.value = '';
+  searchResults.classList.remove('show');
+  searchInput.focus();
+  searchInput.select();
+}
+function closeSearch() {
+  searchResults.classList.remove('show');
+}
+
+function highlightIn(seg, query) {
+  const lo = query.toLowerCase(), slo = seg.toLowerCase();
+  let out = '', pos = 0, at;
+  while ((at = slo.indexOf(lo, pos)) !== -1) {
+    out += escapeHtml(seg.slice(pos, at)) + '<b class="hl">' + escapeHtml(seg.slice(at, at + query.length)) + '</b>';
+    pos = at + query.length;
+  }
+  out += escapeHtml(seg.slice(pos));
+  return out;
+}
+
+function snippetHtml(text, query) {
+  const lo = text.toLowerCase().indexOf(query.toLowerCase());
+  const MAX = 160;
+  if (text.length <= MAX) return highlightIn(text, query);
+  const base = lo === -1 ? 0 : Math.max(0, lo - 25);
+  const seg = text.slice(base, Math.min(text.length, base + MAX));
+  return (base > 0 ? '…' : '') + highlightIn(seg, query) + (base + MAX < text.length ? '…' : '');
+}
+
+function doSearch(q) {
+  const lo = q.toLowerCase();
+  const out = [];
+  questions.forEach((qq, qi) => {
+    const qHit = qq.question.toLowerCase().indexOf(lo);
+    const ansHits = [];
+    qq.answers.forEach((a, ai) => {
+      if (a.text.toLowerCase().indexOf(lo) !== -1) ansHits.push({ ai, text: a.text });
+    });
+    if (qHit !== -1 || ansHits.length) out.push({ qi, qHit, ansHits, qText: qq.question, qType: qq.type });
+  });
+  return out;
+}
+
+function renderSearch() {
+  const q = searchInput.value.trim();
+  searchResults.innerHTML = '';
+  searchActive = 0;
+  if (!q) {
+    searchResults.classList.remove('show');
+    return;
+  }
+  searchResults.classList.add('show');
+  const res = doSearch(q);
+  if (!res.length) {
+    searchResults.innerHTML = '<div class="search-meta">Sin resultados para «' + escapeHtml(q) + '»</div>';
+    return;
+  }
+  const meta = document.createElement('div');
+  meta.className = 'search-meta';
+  meta.textContent = res.length + ' coincidencia(s) en ' + q;
+  searchResults.appendChild(meta);
+
+  res.forEach((r, ri) => {
+    const row = document.createElement('div');
+    row.className = 'search-item';
+    row.dataset.qi = r.qi;
+    row.dataset.idx = ri;
+    const qLine = snippetHtml(r.qText, q);
+    row.innerHTML = '<div class="search-item-q">Pregunta ' + (r.qi + 1) + ' — ' + qLine + '</div>' +
+      r.ansHits.map(ah => '<div class="search-item-a">' + String.fromCharCode(65 + ah.ai) + ') ' + snippetHtml(ah.text, q) + '</div>').join('');
+    row.addEventListener('click', () => selectSearchItem(row));
+    row.addEventListener('mousemove', () => {
+      document.querySelectorAll('.search-item').forEach(x => x.classList.remove('active'));
+      row.classList.add('active');
+      searchActive = ri;
+    });
+    searchResults.appendChild(row);
+  });
+}
+
+function selectSearchItem(row) {
+  const idx = parseInt(row.dataset.qi, 10);
+  closeSearch();
+  goToQuestion(idx);
+  renderQuestionList();
+}
+
+searchInput.addEventListener('input', renderSearch);
+searchInput.addEventListener('focus', () => { if (searchInput.value.trim()) renderSearch(); });
+searchInput.addEventListener('keydown', (e) => {
+  const items = Array.from(document.querySelectorAll('.search-item[data-idx]'));
+  e.stopPropagation();
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    searchActive = Math.min(searchActive + 1, items.length - 1);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    searchActive = Math.max(searchActive - 1, 0);
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    if (items[searchActive]) selectSearchItem(items[searchActive]);
+  } else if (e.key === 'Escape') {
+    e.preventDefault();
+    closeSearch();
+  }
+  items.forEach((x, i) => x.classList.toggle('active', i === searchActive));
+  if (items[searchActive]) items[searchActive].scrollIntoView({ block: 'nearest' });
+});
+
+document.addEventListener('click', (e) => {
+  if (searchResults.classList.contains('show') && !searchBox.contains(e.target)) closeSearch();
+});
+
+// ─── KEYBOARD SHORTCUTS ───
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+  switch(e.key) {
+    case 'ArrowRight':
+    case 'n':
+      nextQuestion();
+      break;
+    case 'ArrowLeft':
+    case 'p':
+      prevQuestion();
+      break;
+    case 's':
+      toggleSolution();
+      break;
+    case 'r':
+      editCurrentRaw();
+      break;
+    case 'f':
+      toggleFullscreen();
+      break;
+    case 'l':
+      toggleSidebar();
+      break;
+    case '/':
+    case 'NumpadDivide':
+      e.preventDefault();
+      openSearch();
+      break;
+    case 'Escape':
+      closeSearch();
+      closeDownloadMenu();
+      document.querySelectorAll('.raw-modal').forEach(m => m.classList.remove('open'));
+      document.getElementById('reportModal')?.classList.remove('open');
+      if (document.getElementById('mergeModal')?.classList.contains('open')) cancelMerge();
+      document.getElementById('destModal')?.classList.remove('open');
+      document.getElementById('qformModal')?.classList.remove('open');
+      document.getElementById('pdfConfigModal')?.classList.remove('open');
+      closeReader();
+      showingSolution = false;
+      renderQuestion();
+      break;
+  }
+});
+
+// ─── RESTORE & BOOTSTRAP ───
+function doRestore(load) {
+  document.getElementById('restoreModal').classList.remove('open');
+  if (load) {
+    const st = loadSavedState();
+    if (st) {
+      questions = Array.isArray(st.questions) ? st.questions : [];
+      currentIdx = (typeof st.currentIdx === 'number' && st.currentIdx >= 0 && st.currentIdx < questions.length) ? st.currentIdx : 0;
+      currentFileName = st.currentFileName || '';
+      document.getElementById('fileInfo').textContent =
+        (currentFileName ? currentFileName + ' — ' : 'Estado guardado') +
+        (st.valid + ' de ' + st.total + ' preguntas') + ' — restaurado el ' + new Date().toLocaleString();
+      document.getElementById('qCount').textContent = questions.length;
+      if (questions.length) {
+        if (!document.body.classList.contains('fullscreen-active') && !sidebarOpen) {
+          sidebarOpen = true;
+          document.getElementById('sidebar').classList.remove('collapsed');
+        }
+        renderQuestion();
+      } else {
+        document.getElementById('sidebar').classList.add('collapsed');
+        sidebarOpen = false;
+      }
+    }
+  } else {
+    clearSavedState();
+    currentFileName = '';
+    renderEmpty();
+  }
+}
+
+document.getElementById('restoreModal').addEventListener('click', function(e) {
+  if (e.target === this) doRestore(false);
+});
+
+(function init() {
+  // Config de git-adjacent? no. Arranque:
+  const st = loadSavedState();
+  if (st && Array.isArray(st.questions) && st.questions.length) {
+    const when = st.savedAt ? ' guardado el ' + new Date(st.savedAt).toLocaleString() : '';
+    document.getElementById('restoreInfo').textContent =
+      'Se encontró un estado guardado con ' + st.questions.length +
+      ' pregunta(s)' + (st.currentFileName ? ' (archivo: ' + st.currentFileName + ')' : '') + when +
+      '. ¿Quieres recuperarlo (pestaña o navegador cerrado, corte de luz, etc.)?';
+    document.getElementById('restoreModal').classList.add('open');
+  }
+})();
+
+// Guardar estado al cerrar/descargar/reload involuntario
+window.addEventListener('beforeunload', saveState);
+</script>
+
+</body>
+</html>
