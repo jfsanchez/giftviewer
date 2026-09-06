@@ -1510,9 +1510,10 @@ const GIFT = {
       while (i < lines.length) {
         const l = lines[i];
         block += l + '\n';
-        for (const ch of l) {
-          if (ch === '{') { braceDepth++; started = true; }
-          else if (ch === '}') braceDepth--;
+        for (let k = 0; k < l.length; k++) {
+          const ch = l[k];
+          if (ch === '{' && !this.isEscaped(l, k)) { braceDepth++; started = true; }
+          else if (ch === '}' && !this.isEscaped(l, k)) braceDepth--;
         }
         i++;
         if (started && braceDepth <= 0) {
@@ -1528,6 +1529,34 @@ const GIFT = {
       }
     }
     return result;
+  },
+
+  // Devuelve true si el carácter en la posición i está escapado (precedido de un \ sin escapar).
+  isEscaped(text, i) {
+    let bs = 0;
+    for (let j = i - 1; j >= 0 && text[j] === '\\'; j--) bs++;
+    return bs % 2 === 1;
+  },
+
+  // Posición del primer carácter no escapado, o -1.
+  findUnescaped(text, ch) {
+    for (let i = 0; i < text.length; i++) {
+      if (text[i] === ch && !this.isEscaped(text, i)) return i;
+    }
+    return -1;
+  },
+
+  // true si aparece alguno de los caracteres dados sin escapar.
+  hasUnescaped(text, chars) {
+    for (const ch of chars) {
+      if (this.findUnescaped(text, ch) !== -1) return true;
+    }
+    return false;
+  },
+
+  // Desescapa \{ y \} (p.ej. código de MongoDB) dentro de un texto.
+  unescapeBraces(s) {
+    return s.replace(/\\([{}])/g, '$1');
   },
 
   validate(text) {
@@ -1555,17 +1584,17 @@ const GIFT = {
     const block = b.text;
     if (b.extraClose) return 'Hay más llaves de cierre } que de apertura {. Revisa que cada { tenga su }.';
 
-    const bStart = block.indexOf('{');
+    const bStart = this.findUnescaped(block, '{');
     if (bStart === -1) return 'No se encontró un bloque de respuestas { }. El enunciado debe terminar con { opciones }.';
     const qText = block.substring(0, bStart).replace(/::(.+?)::/g, '').replace(/<[^>]+>/g, '').trim();
     if (!qText) return 'El enunciado de la pregunta está vacío (texto antes de { es nulo).';
-    if (/[{}]/.test(block.substring(0, bStart)))
+    if (this.hasUnescaped(block.substring(0, bStart), '{}'))
       return 'El enunciado contiene llaves { o } sin escapar (por ejemplo código con llaves). En GIFT deben escaparse como \\{ y \\} porque si no se confunden con el bloque de respuestas.';
 
     let depth = 0, bEnd = -1;
     for (let i = bStart; i < block.length; i++) {
-      if (block[i] === '{') depth++;
-      else if (block[i] === '}') { depth--; if (depth === 0) { bEnd = i; break; } }
+      if (block[i] === '{' && !this.isEscaped(block, i)) depth++;
+      else if (block[i] === '}' && !this.isEscaped(block, i)) { depth--; if (depth === 0) { bEnd = i; break; } }
     }
     if (bEnd === -1) return 'Falta la llave de cierre } del bloque de respuestas.';
 
@@ -1605,8 +1634,8 @@ const GIFT = {
 
     let braceStart = -1, braceEnd = -1, depth = 0;
     for (let i = 0; i < block.length; i++) {
-      if (block[i] === '{') { if (depth === 0) braceStart = i; depth++; }
-      else if (block[i] === '}') { depth--; if (depth === 0) { braceEnd = i; break; } }
+      if (block[i] === '{' && !this.isEscaped(block, i)) { if (depth === 0) braceStart = i; depth++; }
+      else if (block[i] === '}' && !this.isEscaped(block, i)) { depth--; if (depth === 0) { braceEnd = i; break; } }
     }
     if (braceStart === -1 || braceEnd === -1) return null;
 
@@ -1634,11 +1663,11 @@ const GIFT = {
       return { type: 'tf', choices: [{ text: 'Verdadero', correct: isTrue }, { text: 'Falso', correct: !isTrue }], correct: isTrue ? 0 : 1, feedback: '' };
     }
     if (block.match(/^=/) && !block.match(/~/)) {
-      const choices = block.split('=').filter(s => s.trim()).map(p => ({ text: p.replace(/#.*$/, '').trim(), correct: true }));
+      const choices = block.split('=').filter(s => s.trim()).map(p => ({ text: this.unescapeBraces(p.replace(/#.*$/, '').trim()), correct: true }));
       return { type: 'short', choices, correct: 0, feedback: '' };
     }
     if (block.startsWith('#')) {
-      return { type: 'short', choices: [{ text: block.substring(1).trim(), correct: true }], correct: 0, feedback: '' };
+      return { type: 'short', choices: [{ text: this.unescapeBraces(block.substring(1).trim()), correct: true }], correct: 0, feedback: '' };
     }
     const lines = block.split('\n').map(l => l.trim()).filter(l => l);
     const choices = [];
@@ -1647,9 +1676,9 @@ const GIFT = {
       const fbIdx = line.indexOf('//');
       const lineFeedback = fbIdx !== -1 ? line.substring(fbIdx + 2).trim() : '';
       if (fbIdx !== -1) cleanLine = line.substring(0, fbIdx).trim();
-      if (cleanLine.startsWith('=')) choices.push({ text: cleanLine.substring(1).replace(/#.*$/, '').trim(), correct: true, feedback: lineFeedback });
-      else if (cleanLine.startsWith('~')) choices.push({ text: cleanLine.substring(1).replace(/#.*$/, '').trim(), correct: false, feedback: lineFeedback });
-      else if (!cleanLine.startsWith('{') && !cleanLine.startsWith('}') && cleanLine) choices.push({ text: cleanLine.replace(/#.*$/, '').trim(), correct: false, feedback: lineFeedback });
+      if (cleanLine.startsWith('=')) choices.push({ text: this.unescapeBraces(cleanLine.substring(1).replace(/#.*$/, '').trim()), correct: true, feedback: lineFeedback });
+      else if (cleanLine.startsWith('~')) choices.push({ text: this.unescapeBraces(cleanLine.substring(1).replace(/#.*$/, '').trim()), correct: false, feedback: lineFeedback });
+      else if (!cleanLine.startsWith('{') && !cleanLine.startsWith('}') && cleanLine) choices.push({ text: this.unescapeBraces(cleanLine.replace(/#.*$/, '').trim()), correct: false, feedback: lineFeedback });
     }
     if (choices.length === 0) return null;
     const correctIdx = choices.findIndex(c => c.correct);
@@ -2072,10 +2101,14 @@ function copyRaw() {
 }
 
 // ─── EDIT / FORMS / EXPORT ───
-// Escapa caracteres especiales en el ENUNCIADO (el parser los desescapa: \(=~#))
-// En las opciones no se escapan (el parser de respuestas no desescapa; texto plano es más fiel)
+// Escapa caracteres especiales en el ENUNCIADO (el parser los desescapa: \(=~#{}))
+// En las opciones se escapan solo las llaves (el resto se mantiene tal cual; texto plano es más fiel)
 function escGift(s) {
-  return String(s).replace(/\\/g, '\\\\').replace(/=/g, '\\=').replace(/~/g, '\\~').replace(/#/g, '\\#');
+  return String(s).replace(/\\/g, '\\\\').replace(/=/g, '\\=').replace(/~/g, '\\~').replace(/#/g, '\\#').replace(/\{/g, '\\{').replace(/\}/g, '\\}');
+}
+
+function escBraces(s) {
+  return String(s == null ? '' : s).replace(/\{/g, '\\{').replace(/\}/g, '\\}');
 }
 
 function giftFromQuestion(q) {
@@ -2085,9 +2118,9 @@ function giftFromQuestion(q) {
     return head + ' {' + (/^(verdadero|true|cierto)/i.test(t) ? 'T' : 'F') + '}';
   }
   if (q.type === 'short') {
-    return head + ' { ' + q.answers.map(a => '=' + (a.text || '')).join(' ') + ' }';
+    return head + ' { ' + q.answers.map(a => '=' + escBraces(a.text)).join(' ') + ' }';
   }
-  const parts = q.answers.map(a => (a.correct ? '=' : '~') + (a.text || '') + (a.feedback ? ' // ' + a.feedback : ''));
+  const parts = q.answers.map(a => (a.correct ? '=' : '~') + escBraces(a.text) + (a.feedback ? ' // ' + a.feedback : ''));
   return head + ' {\n' + parts.join('\n') + '\n}';
 }
 
