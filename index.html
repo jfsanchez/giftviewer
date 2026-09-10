@@ -149,6 +149,7 @@ body.fullscreen-active header { display: none; }
   cursor: pointer;
   transition: all 0.2s;
   flex-shrink: 0;
+  margin-left: 8px;
 }
 .theme-toggle:hover { transform: scale(1.08); border-color: var(--accent); }
 
@@ -173,15 +174,15 @@ body.fullscreen-active header { display: none; }
 /* ── SEARCH BOX ── */
 .search-box {
   position: relative;
-  flex: 1 1 320px;
-  max-width: 620px;
+  flex: 1 1 240px;
+  max-width: 420px;
   margin: 0 auto;
   padding: 0 16px;
 }
 .search-box input {
   width: 100%;
   box-sizing: border-box;
-  padding: 8px 14px;
+  padding: 8px 14px 8px 34px;
   font-size: 0.9rem;
   border-radius: 20px;
   border: 1.5px solid var(--border);
@@ -189,6 +190,16 @@ body.fullscreen-active header { display: none; }
   color: var(--text);
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
+}
+.search-cat {
+  position: absolute;
+  left: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  font-size: 0.85rem;
+  z-index: 1;
+  opacity: 0.85;
 }
 .search-box input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(26,58,107,0.15); }
 .search-box input::placeholder { color: var(--muted); }
@@ -270,15 +281,32 @@ body.fullscreen-active .app { height: 100vh; }
 .sidebar-list::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 3px; }
 
 .q-item {
+  position: relative;
   padding: 10px 12px;
   margin-bottom: 4px;
   border-radius: 8px;
-  cursor: pointer;
+  cursor: grab;
   font-size: 0.85rem;
   color: var(--muted);
-  transition: all 0.2s;
+  transition: background 0.15s, color 0.15s;
   border: 1px solid transparent;
 }
+.q-item:active { cursor: grabbing; }
+.q-item.dragging { opacity: 0.35; }
+.q-item.drop-before::before,
+.q-item.drop-after::after {
+  content: '';
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  height: 3px;
+  background: var(--accent);
+  border-radius: 2px;
+  z-index: 10;
+  pointer-events: none;
+}
+.q-item.drop-before::before { top: -2px; }
+.q-item.drop-after::after { bottom: -2px; }
 .q-item:hover { background: var(--accent-dim); color: var(--text); }
 .q-item.active {
   background: var(--accent-dim);
@@ -374,7 +402,114 @@ body.fullscreen-active .app { height: 100vh; }
   align-items: center;
   gap: 12px;
   margin-bottom: 12px;
+  flex-wrap: nowrap;
 }
+.q-head {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex-wrap: nowrap;
+}
+.q-head .q-num {
+  flex-shrink: 0;
+  font-size: 0.85rem;
+  color: var(--accent);
+  font-weight: 600;
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+.q-head .q-num small { display: block; font-size: 0.68rem; font-weight: 400; color: var(--muted); letter-spacing: 0; }
+.q-head .q-num small button { background: none; border: none; color: var(--accent); font-size: 0.68rem; cursor: pointer; padding: 0; text-decoration: underline; }
+.q-head-tags {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+.q-head .q-tag a { color: inherit; }
+.q-head .q-act {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--accent-dim);
+  color: var(--text);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  padding: 0;
+}
+.q-head .q-act:hover { border-color: var(--accent); transform: scale(1.05); }
+.q-top-right {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.q-top-right .q-act {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--accent-dim);
+  color: var(--text);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.q-top-right .q-act:hover { border-color: var(--accent); transform: scale(1.05); }
+.q-top-right .q-act.flagged { background: rgba(245,158,11,0.25); color: #f59e0b; }
+.q-top-right .q-act.q-act-info { background: rgba(59,130,246,0.15); color: #3b82f6; border-color: rgba(59,130,246,0.35); font-weight:700; font-size:1rem; }
+.q-top-right .q-act.q-act-info:hover { background: rgba(59,130,246,0.3); border-color: #3b82f6; }
+
+/* ── COMMENT MODAL ── */
+.comment-modal { display:none; position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,0.5); backdrop-filter:blur(3px); }
+.comment-modal.open { display:flex; align-items:center; justify-content:center; }
+.comment-modal-box {
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--border, #ddd);
+  border-radius: 14px;
+  width: min(85vw, 720px);
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+}
+.comment-modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 22px 12px; border-bottom: 1px solid var(--border, #ddd);
+}
+.comment-modal-header h3 { margin:0; font-size:1.2rem; }
+.comment-modal-body { padding: 18px 22px; overflow-y: auto; flex:1; }
+.comment-modal-q {
+  font-size: 1.05rem; line-height:1.6; margin-bottom:16px;
+  padding: 12px 16px; border-left: 4px solid var(--accent, #6366f1);
+  background: var(--accent-dim, rgba(99,102,241,0.08)); border-radius: 0 8px 8px 0;
+  white-space: pre-wrap;
+}
+.comment-modal-body label { font-weight:600; font-size:1rem; display:block; margin-bottom:6px; }
+.comment-modal-body textarea {
+  width:100%; box-sizing:border-box; min-height:180px; padding:12px 14px;
+  border:1px solid var(--border, #ddd); border-radius:8px;
+  font-size:1.05rem; line-height:1.6; font-family:inherit;
+  background:var(--input-bg, #fff); color:var(--text, #111); resize:vertical;
+}
+.comment-modal-body textarea:focus { outline:none; border-color:var(--accent, #6366f1); box-shadow:0 0 0 3px rgba(99,102,241,0.15); }
+.comment-modal-footer { display:flex; gap:10px; justify-content:flex-end; padding:12px 22px 18px; border-top:1px solid var(--border, #ddd); }
 .q-actions { display: inline-flex; gap: 6px; }
 .q-actions .q-act {
   width: 32px;
@@ -393,15 +528,6 @@ body.fullscreen-active .app { height: 100vh; }
 .q-actions .q-act:hover { border-color: var(--accent); transform: scale(1.05); }
 .q-actions .q-act.q-act-del { color: var(--wrong); border-color: rgba(239,68,68,0.4); }
 .q-actions .q-act.q-act-del:hover { border-color: var(--wrong); background: rgba(239,68,68,0.15); }
-
-.q-number {
-  flex: 1;
-  text-align: center;
-  font-size: 0.9rem;
-  color: var(--accent);
-  font-weight: 600;
-  letter-spacing: 1px;
-}
 
 .q-text {
   background: var(--card);
@@ -820,6 +946,37 @@ aside.sidebar:not(.collapsed) ~ .main #btnAddQuestion { display: none; }
 }
 #confirmOneModal .merge-options .ctrl-btn:hover { background: #d97706; border-color: #d97706; }
 
+/* ── SHORTCUTS MODAL ── */
+.shortcuts-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.sc-row {
+  display: flex;
+  align-items: center;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+}
+.sc-row:last-child { border-bottom: none; }
+.sc-key {
+  min-width: 60px;
+  font-family: monospace;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--correct);
+  background: var(--kbd-bg);
+  padding: 3px 8px;
+  border-radius: 4px;
+  text-align: center;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+.sc-desc {
+  font-size: 0.88rem;
+  color: var(--text);
+}
+
 /* ── SIDEBAR TOOLS ── */
 .sidebar-tools {
   display: flex;
@@ -848,6 +1005,15 @@ aside.sidebar:not(.collapsed) ~ .main #btnAddQuestion { display: none; }
 .tool-delete-all:hover { border-color: var(--wrong); background: rgba(239,68,68,0.15); color: var(--wrong); }
 .tool-delete-all:not(:disabled):hover { animation: shake 0.3s; }
 @keyframes shake { 25% { transform: translateX(-2px); } 75% { transform: translateX(2px); } }
+.tool-gift {
+  width: auto;
+  min-width: 32px;
+  padding: 0 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  gap: 2px;
+}
+.tool-gift:hover { border-color: var(--accent); transform: scale(1.08); }
 
 /* ── EDITOR STATUS ── */
 .editor-status {
@@ -894,7 +1060,23 @@ aside.sidebar:not(.collapsed) ~ .main #btnAddQuestion { display: none; }
   resize: vertical;
   font-family: inherit;
 }
-.qform-opt-row { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+.qform-opt-row { position: relative; display: flex; align-items: center; gap: 8px; margin: 6px 0; cursor: grab; border: 1px dashed transparent; border-radius: 6px; padding: 2px 4px; }
+.qform-opt-row:active { cursor: grabbing; }
+.qform-opt-row.dragging { opacity: 0.35; }
+.qform-opt-row.drop-before::before,
+.qform-opt-row.drop-after::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  height: 3px;
+  background: var(--accent);
+  border-radius: 2px;
+  z-index: 10;
+  pointer-events: none;
+}
+.qform-opt-row.drop-before::before { top: -4px; }
+.qform-opt-row.drop-after::after { bottom: -4px; }
 .qform-opt-row input[type="text"] {
   flex: 1;
   padding: 8px 10px;
@@ -973,6 +1155,67 @@ aside.sidebar:not(.collapsed) ~ .main #btnAddQuestion { display: none; }
 }
 .dropdown-item:hover { background: var(--accent-dim); }
 #shuffleMenu .dropdown-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; background: var(--accent-dim); }
+
+/* ── BANDERILLA Y ETIQUETAS ── */
+.sidebar-filter { padding: 10px 12px 0; }
+.sidebar-filter-title { font-size: 0.7rem; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.4px; }
+.sidebar-vis-count { font-size: 0.72rem; color: var(--muted); padding-top: 6px; }
+.mf-wrap { position: relative; }
+.mf-trigger {
+  display: inline-flex; align-items: center; justify-content: space-between; gap: 8px;
+  width: 100%; border: 1px solid var(--border); border-radius: 8px;
+  background: var(--accent-dim); color: var(--text);
+  padding: 6px 10px; font-size: 0.8rem; cursor: pointer;
+}
+.mf-trigger::after { content: '▾'; opacity: 0.7; }
+.mf-trigger:hover { border-color: var(--accent); }
+.mf-panel {
+  display: none; position: absolute; z-index: 30; top: 100%; left: 0; right: 0;
+  background: var(--card); color: var(--text); border: 1px solid var(--border);
+  border-radius: 10px; padding: 6px; box-shadow: 0 12px 28px rgba(0,0,0,0.3);
+  max-height: 220px; overflow-y: auto;
+}
+.mf-panel.open { display: block; }
+.mf-panel label {
+  display: flex; align-items: center; gap: 8px; padding: 6px 8px;
+  border-radius: 6px; cursor: pointer; font-size: 0.85rem;
+}
+.mf-panel label:hover { background: var(--accent-dim); }
+.mf-panel input { accent-color: var(--accent); }
+.mf-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--accent-dim); border: 1px solid var(--border);
+  border-radius: 999px; padding: 2px 8px; font-size: 0.72rem; color: var(--accent);
+  margin: 4px 4px 0 0;
+}
+.mf-chip-x { background: none; border: none; color: var(--muted); cursor: pointer; padding: 0 2px; font-size: 0.7rem; }
+.mf-chip-x:hover { color: var(--wrong); }
+.q-item .q-marks { margin-left: 6px; color: var(--muted); font-size: 0.75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.q-item .q-marks .fl { color: #f59e0b; }
+.q-act.flagged { background: rgba(245,158,11,0.25); color: #f59e0b; }
+.q-head .q-tag {
+  display: inline-flex; align-items: center; gap: 3px;
+  background: var(--accent-dim); border: 1px solid var(--border);
+  border-radius: 999px; padding: 2px 7px; font-size: 0.68rem; color: var(--accent);
+  white-space: nowrap; flex-shrink: 0;
+}
+.q-head .q-tag-x { background: none; border: none; color: var(--muted); cursor: pointer; padding: 0 2px; font-size: 0.65rem; }
+.q-head .q-tag-x:hover { color: var(--wrong); }
+.q-head .q-tag-input {
+  flex: 0 1 90px; min-width: 55px;
+  border: 1px dashed var(--border); background: transparent; color: var(--text);
+  border-radius: 999px; padding: 2px 8px; font-size: 0.7rem;
+}
+.q-head .q-tag-input:focus { border-color: var(--accent); outline: none; }
+.pdf-config-body select {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--accent-dim);
+  color: var(--text);
+  font-size: 0.9rem;
+}
 .dropdown-sep { height: 1px; background: var(--border); margin: 6px 4px; }
 .dropdown-item.on::after { content: '✓'; margin-left: auto; color: var(--correct); font-weight: 700; }
 .dd-state { margin-left: auto; font-weight: 700; }
@@ -1356,6 +1599,30 @@ body.light .report-item-raw pre { background: #f5f5f5; }
   .print-sol-item { break-inside: avoid; }
   .print-sol-num { font-weight: 700; }
   .print-sol-ans { font-weight: 700; color: #16a34a; }
+  .print-short-space { height: 3cm; margin-top: 8px; border: 1px dashed #bbb; border-radius: 6px; }
+  .print-comment {
+    margin-top: 10px;
+    padding: 10px 14px;
+    border: 2px solid #dc2626;
+    background: #fef2f2;
+    border-radius: 8px;
+    color: #991b1b;
+    font-size: 10pt;
+    line-height: 1.5;
+    break-inside: avoid;
+    white-space: pre-wrap;
+  }
+  .print-comment-title {
+    font-weight: 800;
+    letter-spacing: 1px;
+    color: #dc2626;
+    font-size: 9.5pt;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+  }
+  .print-q-text img { max-width: 100%; height: auto; display: block; margin: 6px 0; }
+  .print-q-text .corr { font-weight: 700; color: #16a34a; }
+  .print-q-text .blnk { display: inline-block; min-width: 90px; border-bottom: 1.5px solid #111; padding: 0 4px; }
 }
 </style>
 </head>
@@ -1368,44 +1635,43 @@ body.light .report-item-raw pre { background: #f5f5f5; }
       <span class="hamb-kbd">L</span>
       <span class="hamb-line"></span>
     </span>
-    <span class="hamb-label">Menú</span>
+    <span class="hamb-label">Listado</span>
     <span class="hamb-chev" aria-hidden="true">▾</span>
   </button>
   <h1>⚡ GIFTviewer</h1>
 
   <div class="search-box" id="searchBox">
-    <input type="text" id="searchInput" placeholder="🔍 Buscar en preguntas y respuestas (↑/↓ + Enter para ir a la pregunta)" autocomplete="off" spellcheck="false">
+    <span class="search-cat" aria-hidden="true">🔍</span>
+    <input type="text" id="searchInput" placeholder="Buscar en preguntas y respuestas (↑/↓ + Enter para ir a la pregunta)" autocomplete="off" spellcheck="false">
     <div class="search-results" id="searchResults"></div>
   </div>
 
   <div class="file-area">
     <span class="report-badge" id="reportBadge" onclick="showReport()" title="Ver errores de sintaxis">0</span>
     <span class="file-info" id="fileInfo">Sin archivo cargado</span>
-    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Cambiar modo claro/oscuro">🌙</button>
     <button class="ctrl-btn small-btn" onclick="openEditor()" title="Editar el GIFT completo de todas las preguntas">✏️ Editar GIFT</button>
-    <div class="dropdown" id="downloadDropdown">
-      <button class="ctrl-btn small-btn" id="btnDownload" onclick="toggleDownloadMenu(event)" title="Descargar" disabled>
-        📥 Descargar ▾
-      </button>
-      <div class="dropdown-menu" id="downloadMenu">
-        <button class="dropdown-item" onclick="exportDocument()">📄 Exportar documento</button>
-        <button class="dropdown-item" onclick="downloadGift()">💾 Descargar GIFT</button>
-      </div>
-    </div>
-    <label>
-      📂 Añadir .gift
-      <input type="file" id="giftFile" accept=".gift,.txt">
-    </label>
+    <button class="ctrl-btn small-btn" id="btnExportDoc" onclick="exportDocument()" title="Exportar documento" disabled>⬇️ TXT/PDF/RTF</button>
+    <button class="ctrl-btn small-btn" id="btnDownloadGift" onclick="downloadGift()" title="Descargar GIFT" disabled>⬇️ GIFT</button>
   </div>
+  <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Cambiar modo claro/oscuro">🌙</button>
 </header>
 
 <div class="app">
   <aside class="sidebar collapsed" id="sidebar">
     <div class="sidebar-tools">
+      <label class="tool-btn tool-gift" title="Añadir archivo .gift">
+        <input type="file" id="giftFile" accept=".gift,.txt" style="display:none;">
+        ➕<span style="font-size:0.7rem;font-weight:600;"> .gift</span>
+      </label>
       <button class="tool-btn" id="toolAdd" onclick="openEditForm(null)" title="Añadir pregunta">➕</button>
       <button class="tool-btn" id="toolEdit" onclick="editCurrent()" title="Editar pregunta actual">✏️</button>
       <button class="tool-btn tool-delete" id="toolDelete" onclick="deleteCurrent()" title="Borrar pregunta actual">✕</button>
       <button class="tool-btn tool-delete-all" id="btnDeleteAll" onclick="confirmDeleteAll()" title="Eliminar todas las preguntas del banco" disabled>✖✖</button>
+    </div>
+    <div class="sidebar-filter">
+      <div class="sidebar-filter-title">Filtrar listado (ninguna marcada = todas)</div>
+      <div id="filterBox" class="mf-wrap"></div>
+      <div id="visCount" class="sidebar-vis-count"></div>
     </div>
     <div class="sidebar-list" id="questionList"></div>
   </aside>
@@ -1426,32 +1692,23 @@ Autor: <a href="https://jfsanchez.es/giftviewer" target="_blank" rel="noopener">
 
     <div class="controls" id="controlsBar" style="display:none;">
       <button class="ctrl-btn success" onclick="openEditForm(null)" id="btnAddQuestion" title="Añadir una pregunta nueva">➕ Añadir</button>
-      <button class="ctrl-btn warn" onclick="prevQuestion()" id="btnPrev" title="Pregunta anterior (←)">
-        ◀ <span class="kbd">←</span>
-      </button>
+      <button class="ctrl-btn warn" onclick="prevQuestion()" id="btnPrev" title="Pregunta anterior (←)">◀</button>
       <span class="progress-info" id="progressInfo">1 / 1</span>
-      <button class="ctrl-btn warn" onclick="nextQuestion()" id="btnNext" title="Siguiente pregunta (→)">
-        ▶ <span class="kbd">→</span>
-      </button>
-      <button class="ctrl-btn success" onclick="toggleSolution()" id="btnSolution" title="Ver solución (S)">
-        💡 <span class="kbd">S</span>
-      </button>
+      <button class="ctrl-btn warn" onclick="nextQuestion()" id="btnNext" title="Siguiente pregunta (→)">▶</button>
+      <button class="ctrl-btn success" onclick="toggleSolution()" id="btnSolution" title="Ver solución (S)">💡</button>
       <div class="seg-toggle" id="segColumns" title="Cambiar la disposición de las respuestas">
-        <button class="seg-part" id="segOne" onclick="setLayout(1)" title="Mostrar las respuestas en 1 columna (1)">⊟<span class="kbd">1</span></button>
-        <button class="seg-part" id="segTwo" onclick="setLayout(2)" title="Mostrar las respuestas en 2 columnas (2)">⊞<span class="kbd">2</span></button>
+        <button class="seg-part" id="segOne" onclick="setLayout(1)" title="Mostrar las respuestas en 1 columna (1)">⊟</button>
+        <button class="seg-part" id="segTwo" onclick="setLayout(2)" title="Mostrar las respuestas en 2 columnas (2)">⊞</button>
       </div>
-      <button class="ctrl-btn" onclick="doToggleFullscreen()" id="optFullscreen" title="Entrar en pantalla completa (F)">
-        ⛶ <span class="kbd">F</span>
-      </button>
+      <button class="ctrl-btn" onclick="doToggleFullscreen()" id="optFullscreen" title="Entrar en pantalla completa (F)">⛶</button>
       <div class="dropdown" id="shuffleDropdown">
-        <button class="ctrl-btn" onclick="toggleShuffleMenu(event)" id="btnShuffle" title="Aleatorizar preguntas o respuestas (A)">
-          🎲 <span class="kbd">A</span> ▾
-        </button>
+        <button class="ctrl-btn" onclick="toggleShuffleMenu(event)" id="btnShuffle" title="Aleatorizar preguntas o respuestas (A)">🎲 ▾</button>
         <div class="dropdown-menu" id="shuffleMenu">
           <button class="dropdown-item" id="optShuffleAnswers" onclick="toggleShuffleAnswers()">🔀 Aleatorizar respuestas <span class="dd-state off">✗</span></button>
           <button class="dropdown-item" id="optShuffleQuestions" onclick="toggleShuffleQuestions()">🎲 Aleatorizar preguntas <span class="dd-state off">✗</span></button>
         </div>
       </div>
+      <button class="ctrl-btn" onclick="showShortcuts()" title="Atajos de teclado">ℹ️</button>
     </div>
   </div>
 </div>
@@ -1552,6 +1809,51 @@ Autor: <a href="https://jfsanchez.es/giftviewer" target="_blank" rel="noopener">
   </div>
 </div>
 
+<!-- COMMENT MODAL -->
+<div class="comment-modal" id="commentModal">
+  <div class="comment-modal-box">
+    <div class="comment-modal-header">
+      <h3>💬 Comentario para el corrector</h3>
+      <button class="ctrl-btn" onclick="hideCommentModal()">✕</button>
+    </div>
+    <div class="comment-modal-body">
+      <div class="comment-modal-q" id="commentModalQ"></div>
+      <label for="commentModalText">Comentario:</label>
+      <textarea id="commentModalText" placeholder="Escribe aquí el comentario para el corrector…"></textarea>
+    </div>
+    <div class="comment-modal-footer">
+      <button class="ctrl-btn" onclick="hideCommentModal()">Cancelar</button>
+      <button class="ctrl-btn primary" onclick="saveCommentModal()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- SHORTCUTS MODAL -->
+<div class="merge-modal" id="shortcutsModal">
+  <div class="merge-modal-content" style="max-width:440px;">
+    <div class="report-header" style="padding:0 0 10px 0; border-bottom:none;">
+      <h3 style="margin:0;">⌨️ Atajos de teclado</h3>
+      <button class="ctrl-btn" onclick="hideShortcuts()">✕</button>
+    </div>
+    <div class="shortcuts-grid">
+      <div class="sc-row"><span class="sc-key">← →</span><span class="sc-desc">Pregunta anterior / siguiente</span></div>
+      <div class="sc-row"><span class="sc-key">p / n</span><span class="sc-desc">Pregunta anterior / siguiente</span></div>
+      <div class="sc-row"><span class="sc-key">s</span><span class="sc-desc">Mostrar / ocultar solución</span></div>
+      <div class="sc-row"><span class="sc-key">1</span><span class="sc-desc">Respuestas en 1 columna</span></div>
+      <div class="sc-row"><span class="sc-key">2</span><span class="sc-desc">Respuestas en 2 columnas</span></div>
+      <div class="sc-row"><span class="sc-key">a</span><span class="sc-desc">Abrir menú de aleatorización</span></div>
+      <div class="sc-row"><span class="sc-key">e</span><span class="sc-desc">Editar pregunta</span></div>
+      <div class="sc-row"><span class="sc-key">r</span><span class="sc-desc">Editar en RAW (GIFT)</span></div>
+      <div class="sc-row"><span class="sc-key">f</span><span class="sc-desc">Pantalla completa</span></div>
+      <div class="sc-row"><span class="sc-key">l / m</span><span class="sc-desc">Abrir / cerrar listado</span></div>
+      <div class="sc-row"><span class="sc-key">/</span><span class="sc-desc">Buscar</span></div>
+      <div class="sc-row"><span class="sc-key">i</span><span class="sc-desc">Mostrar esta leyenda</span></div>
+      <div class="sc-row"><span class="sc-key">Del</span><span class="sc-desc">Eliminar pregunta</span></div>
+      <div class="sc-row"><span class="sc-key">Esc</span><span class="sc-desc">Cerrar paneles / modales</span></div>
+    </div>
+  </div>
+</div>
+
 <!-- QUESTION FORM MODAL -->
 <div class="qform-modal" id="qformModal">
   <div class="qform-content">
@@ -1565,9 +1867,11 @@ Autor: <a href="https://jfsanchez.es/giftviewer" target="_blank" rel="noopener">
     </div>
     <div id="qfPaneForm">
       <label class="qform-label" for="qfEnunciado">Enunciado</label>
-      <textarea id="qfEnunciado" rows="3" placeholder="Texto de la pregunta…"></textarea>
+      <textarea id="qfEnunciado" rows="3" placeholder="Texto de la pregunta… Puedes usar &lt;img src='url'&gt; para imágenes y {{palabra}} para cubrir una palabra."></textarea>
       <label class="qform-label">Opciones (marca la correcta)</label>
       <div id="qfOptions"></div>
+      <label class="qform-label" for="qfComment" style="margin-top:8px;">Comentario para el corrector (opcional, no se muestra en la pregunta)</label>
+      <textarea id="qfComment" rows="2" placeholder="Nota interna para el corrector…" style="width:100%;max-width:540px;box-sizing:border-box;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:0.88rem;resize:vertical;background:var(--input-bg);color:var(--text);"></textarea>
       <div class="qform-actions">
         <button class="ctrl-btn" onclick="hideQForm()">Cancelar</button>
         <button class="ctrl-btn primary" onclick="saveQForm()">💾 Guardar</button>
@@ -1611,6 +1915,11 @@ Autor: <a href="https://jfsanchez.es/giftviewer" target="_blank" rel="noopener">
 
     <div class="pdf-config-body">
 
+    <label class="pdf-row" style="display:block">
+      <span class="pdf-row-title">Preguntas a exportar (marca varias; ninguna = todas)</span>
+      <div id="exportFilterBox" class="mf-wrap"></div>
+    </label>
+
     <label class="pdf-row">
       <span class="pdf-row-title">Título del examen</span>
       <input type="text" id="pdfTitle" placeholder="Ej: Examen de Bases de Datos">
@@ -1629,6 +1938,14 @@ Autor: <a href="https://jfsanchez.es/giftviewer" target="_blank" rel="noopener">
     <label class="pdf-check">
       <input type="checkbox" id="pdfShuffle" onchange="onPdfShuffleToggle()">
       <span>🔀 Aleatorizar el orden de las respuestas <small>(añade una hoja de soluciones)</small></span>
+    </label>
+    <label class="pdf-check">
+      <input type="checkbox" id="pdfShowSolutions">
+      <span>📝 Incluir soluciones y respuestas correctas en el documento</span>
+    </label>
+    <label class="pdf-check">
+      <input type="checkbox" id="pdfShowComments">
+      <span>💬 Incluir comentarios del corrector (solo si se muestran soluciones)</span>
     </label>
 
     <div id="pdfCoverSection">
@@ -1720,9 +2037,9 @@ const GIFT = {
     while (i < lines.length) {
       const line = lines[i].trim();
       const isMeta = !line ||
-        (line.startsWith('//') && !/^\/\/.*::/.test(line)) ||
+        (line.startsWith('//') && !/^\/\/.*::/.test(line) && !/^\/\/corrector:/i.test(line)) ||
         line.startsWith('$CATEGORY') ||
-        line.startsWith('#') ||
+        (line.startsWith('#') && !line.startsWith('##corrector:')) ||
         /^\[[a-z_]{1,20}\]$/i.test(line);
       if (isMeta) { i++; continue; }
       let block = '', braceDepth = 0, started = false, extraClose = false;
@@ -1733,6 +2050,10 @@ const GIFT = {
         block += l + '\n';
         for (let k = 0; k < l.length; k++) {
           const ch = l[k];
+          if (ch === '{' && l[k + 1] === '{' && !this.isEscaped(l, k)) {
+            const close = l.indexOf('}}', k + 2);
+            if (close !== -1) { k = close + 1; continue; }
+          }
           if (ch === '{' && !this.isEscaped(l, k)) { braceDepth++; started = true; }
           else if (ch === '}' && !this.isEscaped(l, k)) braceDepth--;
         }
@@ -1807,13 +2128,17 @@ const GIFT = {
 
     const bStart = this.findUnescaped(block, '{');
     if (bStart === -1) return 'No se encontró un bloque de respuestas { }. El enunciado debe terminar con { opciones }.';
-    const qText = block.substring(0, bStart).replace(/::(.+?)::/g, '').replace(/<[^>]+>/g, '').trim();
+    const qText = block.substring(0, bStart).replace(/::(.+?)::/g, '').replace(/<(?!img\b|\/img\b|br\b|\/br\b)[^>]+>/gi, '').trim();
     if (!qText) return 'El enunciado de la pregunta está vacío (texto antes de { es nulo).';
     if (this.hasUnescaped(block.substring(0, bStart), '{}'))
       return 'El enunciado contiene llaves { o } sin escapar (por ejemplo código con llaves). En GIFT deben escaparse como \\{ y \\} porque si no se confunden con el bloque de respuestas.';
 
     let depth = 0, bEnd = -1;
     for (let i = bStart; i < block.length; i++) {
+      if (block[i] === '{' && block[i + 1] === '{' && !this.isEscaped(block, i)) {
+        const close = block.indexOf('}}', i + 2);
+        if (close !== -1) { i = close + 1; continue; }
+      }
       if (block[i] === '{' && !this.isEscaped(block, i)) depth++;
       else if (block[i] === '}' && !this.isEscaped(block, i)) { depth--; if (depth === 0) { bEnd = i; break; } }
     }
@@ -1843,8 +2168,19 @@ const GIFT = {
   parseBlock(block) {
     const rawBlock = block.trim();
     let cleanedLines = [];
+    let comment = '';
     for (const l of block.split('\n')) {
-      if (l.trim().startsWith('//') && !/^\/\/\s*::/.test(l.trim())) continue;
+      const trimmed = l.trim();
+      const cm = trimmed.match(/^\/\/corrector:\s*(.*)$/i);
+      if (cm && cm[1]) {
+        comment = (comment ? comment + ' ' : '') + cm[1].trim();
+        continue;
+      }
+      if (trimmed.startsWith('##corrector:')) {
+        comment = (comment ? comment + ' ' : '') + trimmed.substring(12).trim();
+        continue;
+      }
+      if (trimmed.startsWith('//') && !/^\/\/\s*::/.test(trimmed)) continue;
       cleanedLines.push(l);
     }
     block = cleanedLines.join('\n');
@@ -1855,6 +2191,10 @@ const GIFT = {
 
     let braceStart = -1, braceEnd = -1, depth = 0;
     for (let i = 0; i < block.length; i++) {
+      if (block[i] === '{' && block[i + 1] === '{' && !this.isEscaped(block, i)) {
+        const close = block.indexOf('}}', i + 2);
+        if (close !== -1) { i = close + 1; continue; }
+      }
       if (block[i] === '{' && !this.isEscaped(block, i)) { if (depth === 0) braceStart = i; depth++; }
       else if (block[i] === '}' && !this.isEscaped(block, i)) { depth--; if (depth === 0) { braceEnd = i; break; } }
     }
@@ -1864,7 +2204,9 @@ const GIFT = {
     let answerBlock = block.substring(braceStart + 1, braceEnd).trim();
     let formatHint = block.substring(braceEnd + 1).trim();
 
-    questionText = questionText.replace(/<[^>]+>/g, '').trim();
+    const blanks = [];
+    questionText = questionText.replace(/\{\{(.+?)\}\}/g, (m, ans) => { blanks.push(ans.trim()); return '______'; });
+    questionText = questionText.replace(/<(?!img\b|\/img\b|br\b|\/br\b)[^>]+>/gi, '').trim();
     questionText = questionText.replace(/\\([=~#{}])/g, '$1').trim();
 
     const answers = this.parseAnswers(answerBlock, formatHint);
@@ -1874,7 +2216,10 @@ const GIFT = {
     if (answers.type === 'tf') type = 'tf';
     else if (answers.type === 'short') type = 'short';
 
-    return { title, question: questionText, type, answers: answers.choices, correct: answers.correct, feedback: answers.feedback, raw: rawBlock };
+    const q = { title, question: questionText, type, answers: answers.choices, correct: answers.correct, feedback: answers.feedback, raw: rawBlock };
+    if (blanks.length) q.blanks = blanks;
+    if (comment) q.comment = comment;
+    return q;
   },
 
   parseAnswers(block, formatHint) {
@@ -1968,6 +2313,78 @@ function shuffleArray(arr) {
   return a;
 }
 
+// ─── BANDERILLA Y ETIQUETAS ───
+const FLAG_TAG = '🚩';
+function qTags(q) { return Array.isArray(q && q.tags) ? q.tags : []; }
+function isFlagged(q) { return qTags(q).includes(FLAG_TAG); }
+function ensureQTags(q) { if (!Array.isArray(q.tags)) q.tags = []; return q.tags; }
+function collectedTags() {
+  const set = [];
+  questions.forEach(q => qTags(q).forEach(t => {
+    if (t !== FLAG_TAG && set.indexOf(t) === -1) set.push(t);
+  }));
+  return set;
+}
+function toggleFlagCurrent() {
+  if (!questions.length) return;
+  const t = ensureQTags(questions[displayOrder[currentIdx]]);
+  const i = t.indexOf(FLAG_TAG);
+  if (i === -1) t.push(FLAG_TAG); else t.splice(i, 1);
+  saveState(); updateQHead();
+}
+function addTagCurrent(tag) {
+  if (!questions.length) return;
+  tag = (tag || '').trim().replace(/\s+/g, ' ');
+  if (!tag) return;
+  const t = ensureQTags(questions[displayOrder[currentIdx]]);
+  if (t.includes(tag)) return;
+  t.push(tag);
+  saveState(); updateQHead();
+}
+function removeTagCurrent(tag) {
+  if (!questions.length) return;
+  const t = ensureQTags(questions[displayOrder[currentIdx]]);
+  const i = t.indexOf(tag);
+  if (i !== -1) t.splice(i, 1);
+  saveState(); updateQHead();
+}
+function updateQHead() {
+  let q = questions[displayOrder[currentIdx]];
+  if (!q) return;
+  const flagBtn = document.getElementById('qFlagBtn');
+  if (flagBtn) {
+    flagBtn.classList.toggle('flagged', isFlagged(q));
+    flagBtn.title = isFlagged(q) ? 'Quitar banderilla' : 'Marcar con banderilla';
+  }
+  const chipsBox = document.getElementById('qChips');
+  if (chipsBox) {
+    chipsBox.innerHTML = '';
+    qTags(q).forEach(tag => {
+      if (tag === FLAG_TAG) return;
+      const chip = document.createElement('span');
+      chip.className = 'q-tag';
+      chip.textContent = tag;
+      const x = document.createElement('button');
+      x.className = 'q-tag-x';
+      x.textContent = '✕';
+      x.title = 'Quitar etiqueta ' + tag;
+      x.addEventListener('click', () => removeTagCurrent(tag));
+      chip.appendChild(x);
+      chipsBox.appendChild(chip);
+    });
+  }
+  renderQuestionList();
+}
+let listFilter = [];
+let exportSel = [];
+let dropTargetGapIdx = -1;
+
+function cleanUpDropIndicators() {
+  document.querySelectorAll('.q-item.drop-before, .q-item.drop-after').forEach(el => {
+    el.classList.remove('drop-before', 'drop-after');
+  });
+}
+
 // ─── RENDER ───
 function renderQuestionList() {
   const list = document.getElementById('questionList');
@@ -1975,20 +2392,175 @@ function renderQuestionList() {
   const canEdit = questions.length > 0;
   document.getElementById('toolEdit').disabled = !canEdit;
   document.getElementById('toolDelete').disabled = !canEdit;
-  document.getElementById('btnDownload').disabled = !canEdit;
+  document.getElementById('btnDownloadGift').disabled = !canEdit;
+  document.getElementById('btnExportDoc').disabled = !canEdit;
   document.getElementById('btnDeleteAll').disabled = !canEdit;
 
   ensureDisplayOrder();
-  displayOrder.forEach((origIdx, pos) => {
+  const shown = displayOrder.filter(origIdx => {
+    if (!listFilter.length) return true;
+    const t = qTags(questions[origIdx]);
+    return listFilter.some(f => f === 'flagged' ? t.includes(FLAG_TAG) : f === 'unflagged' ? !t.includes(FLAG_TAG) : t.includes(f));
+  });
+  shown.forEach((origIdx, pos) => {
     const q = questions[origIdx];
+    const dispPos = displayOrder.indexOf(origIdx);
     const div = document.createElement('div');
-    div.className = 'q-item' + (pos === currentIdx ? ' active' : '');
+    div.className = 'q-item' + (dispPos === currentIdx ? ' active' : '');
     const typeLabel = q.type === 'tf' ? 'V/F' : q.type === 'short' ? 'Texto' : `${q.answers.length} op`;
     const typeClass = q.type === 'tf' ? 'tf' : q.type === 'short' ? 'short' : 'mc';
-    div.innerHTML = `<span class="q-num">${pos + 1}</span>${q.question.substring(0, 50)}${q.question.length > 50 ? '…' : ''}<span class="q-type ${typeClass}">${typeLabel}</span>`;
-    div.onclick = () => goToQuestion(pos);
+    const marks = [];
+    if (isFlagged(q)) marks.push('<span class="fl">🚩</span>');
+    qTags(q).forEach(t => { if (t !== FLAG_TAG) marks.push('#' + t); });
+    div.innerHTML = `<span class="q-num">${pos + 1}</span>${q.question.substring(0, 40)}${q.question.length > 40 ? '…' : ''}${marks.length ? `<span class="q-marks">${marks.join(' ')}</span>` : ''}<span class="q-type ${typeClass}">${typeLabel}</span>`;
+    div.title = 'Pincha para ir · arrastra para reordenar';
+    div.draggable = true;
+    div.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('text/plain', String(dispPos));
+      e.dataTransfer.effectAllowed = 'move';
+      div.classList.add('dragging');
+    });
+    div.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      e.dataTransfer.dropEffect = 'move';
+      cleanUpDropIndicators();
+      const rect = div.getBoundingClientRect();
+      const above = e.clientY < rect.top + rect.height / 2;
+      if (above) {
+        div.classList.add('drop-before');
+        dropTargetGapIdx = dispPos;
+      } else {
+        div.classList.add('drop-after');
+        dropTargetGapIdx = dispPos + 1;
+      }
+    });
+    div.addEventListener('dragleave', (e) => {
+      if (!div.contains(e.relatedTarget)) {
+        div.classList.remove('drop-before', 'drop-after');
+      }
+    });
+    div.addEventListener('drop', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      cleanUpDropIndicators();
+      const srcPos = parseInt(e.dataTransfer.getData('text/plain'), 10);
+      if (!isNaN(srcPos) && dropTargetGapIdx >= 0) moveInDisplayOrder(srcPos, dropTargetGapIdx);
+      dropTargetGapIdx = -1;
+    });
+    div.addEventListener('dragend', () => {
+      div.classList.remove('dragging');
+      cleanUpDropIndicators();
+      dropTargetGapIdx = -1;
+    });
+    div.onclick = () => goToQuestion(dispPos);
     list.appendChild(div);
   });
+  const vc = document.getElementById('visCount');
+  if (vc) vc.textContent = `Preguntas visibles: ${shown.length} / ${questions.length}`;
+  renderListFilter();
+}
+
+function moveInDisplayOrder(srcPos, insertBeforeIdx) {
+  ensureDisplayOrder();
+  const n = displayOrder.length;
+  if (srcPos < 0 || srcPos >= n || insertBeforeIdx < 0 || insertBeforeIdx > n) return;
+  const curOrig = displayOrder[currentIdx];
+  const [item] = displayOrder.splice(srcPos, 1);
+  let insertAt = insertBeforeIdx;
+  if (insertAt > srcPos) insertAt--;
+  if (insertAt < 0) insertAt = 0;
+  if (insertAt > displayOrder.length) insertAt = displayOrder.length;
+  displayOrder.splice(insertAt, 0, item);
+  currentIdx = displayOrder.indexOf(curOrig);
+  if (currentIdx === -1) currentIdx = 0;
+  saveState();
+  renderQuestion();
+  renderQuestionList();
+}
+
+let mfOpen = null;
+function toggleMultiBox(panelId) {
+  mfOpen = mfOpen === panelId ? null : panelId;
+  refreshMultiBoxes();
+}
+function refreshMultiBoxes() {
+  (document.querySelectorAll('.mf-panel') || []).forEach(p => p.classList.toggle('open', p.id === mfOpen));
+}
+function mfLabel(v) {
+  if (v === 'flagged') return '🚩 Con banderilla';
+  if (v === 'unflagged') return 'Sin banderilla';
+  return '#' + v;
+}
+function mfShort(v) {
+  if (v === 'flagged') return '🚩';
+  if (v === 'unflagged') return 'sin 🚩';
+  return '#' + v;
+}
+function renderMultiFilter(wrapId, sel, onChanged) {
+  const wrap = document.getElementById(wrapId);
+  if (!wrap) return;
+  const prevSel = sel.slice();
+  wrap.innerHTML = '';
+  const trig = document.createElement('button');
+  trig.type = 'button';
+  trig.className = 'mf-trigger';
+  trig.textContent = prevSel.length ? (prevSel.length + ' seleccionada' + (prevSel.length > 1 ? 's' : '')) : 'Todas';
+  trig.title = 'Marcar varias categorías';
+  trig.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleMultiBox(wrapId + 'Panel');
+  });
+  wrap.appendChild(trig);
+  prevSel.forEach(v => {
+    const chip = document.createElement('span');
+    chip.className = 'mf-chip';
+    chip.textContent = mfShort(v);
+    const x = document.createElement('button');
+    x.type = 'button';
+    x.className = 'mf-chip-x';
+    x.textContent = '✕';
+    x.title = 'Quitar ' + mfLabel(v);
+    x.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const i = sel.indexOf(v);
+      if (i !== -1) sel.splice(i, 1);
+      onChanged();
+    });
+    chip.appendChild(x);
+    wrap.appendChild(chip);
+  });
+  const panel = document.createElement('div');
+  panel.className = 'mf-panel';
+  panel.id = wrapId + 'Panel';
+  const addOpt = (value, label) => {
+    const lab = document.createElement('label');
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = prevSel.includes(value);
+    const upd = () => {
+      const i = sel.indexOf(value);
+      if (i === -1) sel.push(value); else sel.splice(i, 1);
+      onChanged();
+    };
+    cb.addEventListener('change', upd);
+    lab.appendChild(cb);
+    lab.appendChild(document.createTextNode(label));
+    panel.appendChild(lab);
+  };
+  addOpt('flagged', '🚩 Con banderilla');
+  addOpt('unflagged', 'Sin banderilla');
+  collectedTags().forEach(t => addOpt(t, '#' + t));
+  wrap.appendChild(panel);
+  if (panel.id === mfOpen) panel.classList.add('open');
+}
+
+function renderListFilter() {
+  renderMultiFilter('filterBox', listFilter, () => renderQuestionList());
+}
+
+function renderExportFilter() {
+  renderMultiFilter('exportFilterBox', exportSel, () => renderExportFilter());
 }
 
 function renderQuestion() {
@@ -2024,10 +2596,60 @@ function renderQuestion() {
   qActions.appendChild(btnEditQ);
   qActions.appendChild(btnDelQ);
   const num = document.createElement('div');
-  num.className = 'q-number';
+  num.className = 'q-num';
   num.textContent = `PREGUNTA ${currentIdx + 1} / ${questions.length}`;
-  qTop.appendChild(qActions);
+  const qHead = document.createElement('div');
+  qHead.className = 'q-head';
+  const qChips = document.createElement('div');
+  qChips.className = 'q-head-tags';
+  qChips.id = 'qChips';
+  qTags(q).forEach(tag => {
+    if (tag === FLAG_TAG) return;
+    const chip = document.createElement('span');
+    chip.className = 'q-tag';
+    chip.textContent = tag;
+    const x = document.createElement('button');
+    x.className = 'q-tag-x';
+    x.textContent = '✕';
+    x.title = 'Quitar etiqueta ' + tag;
+    x.addEventListener('click', () => removeTagCurrent(tag));
+    chip.appendChild(x);
+    qChips.appendChild(chip);
+  });
+  qHead.appendChild(qChips);
+  const tagInput = document.createElement('input');
+  tagInput.className = 'q-tag-input';
+  tagInput.placeholder = '+ etiqueta…';
+  tagInput.title = 'Añadir etiqueta (Enter)';
+  tagInput.addEventListener('keydown', (e) => {
+    e.stopPropagation();
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addTagCurrent(tagInput.value);
+      tagInput.value = '';
+    }
+  });
+  qHead.appendChild(tagInput);
+  const qTopRight = document.createElement('div');
+  qTopRight.className = 'q-top-right';
+  const btnFlagQ = document.createElement('button');
+  btnFlagQ.id = 'qFlagBtn';
+  btnFlagQ.className = 'q-act' + (isFlagged(q) ? ' flagged' : '');
+  btnFlagQ.textContent = '🚩';
+  btnFlagQ.title = isFlagged(q) ? 'Quitar banderilla' : 'Marcar con banderilla';
+  btnFlagQ.addEventListener('click', toggleFlagCurrent);
+  const btnInfoQ = document.createElement('button');
+  btnInfoQ.id = 'qInfoBtn';
+  btnInfoQ.className = 'q-act q-act-info';
+  btnInfoQ.textContent = 'ℹ';
+  btnInfoQ.title = 'Comentario para el corrector';
+  btnInfoQ.addEventListener('click', showCommentModal);
+  qTopRight.appendChild(btnInfoQ);
+  qTopRight.appendChild(btnFlagQ);
   qTop.appendChild(num);
+  qTop.appendChild(qActions);
+  qTop.appendChild(qHead);
+  qTop.appendChild(qTopRight);
   card.appendChild(qTop);
 
   // Progress bar
@@ -2042,7 +2664,7 @@ function renderQuestion() {
   // Question text
   const qText = document.createElement('div');
   qText.className = 'q-text';
-  qText.textContent = q.question;
+  qText.innerHTML = sanitizeQHTML(q.question);
   const hint = document.createElement('span');
   hint.className = 'zoom-hint';
   hint.textContent = '⛶ Pincha para ampliar';
@@ -2574,6 +3196,39 @@ function hideConfirmOne() {
   document.getElementById('confirmOneModal').classList.remove('open');
 }
 
+function showCommentModal() {
+  if (!questions.length) return;
+  const q = questions[displayOrder[currentIdx]];
+  document.getElementById('commentModalQ').textContent = q.question;
+  document.getElementById('commentModalText').value = q.comment || '';
+  document.getElementById('commentModal').classList.add('open');
+}
+function hideCommentModal() {
+  document.getElementById('commentModal').classList.remove('open');
+}
+function saveCommentModal() {
+  if (!questions.length) return;
+  const q = questions[displayOrder[currentIdx]];
+  const val = document.getElementById('commentModalText').value.trim();
+  if (val) q.comment = val; else delete q.comment;
+  hideCommentModal();
+  saveState();
+}
+document.getElementById('commentModal').addEventListener('click', function(e) {
+  if (e.target === this) hideCommentModal();
+});
+
+function showShortcuts() {
+  document.getElementById('shortcutsModal').classList.add('open');
+}
+function hideShortcuts() {
+  document.getElementById('shortcutsModal').classList.remove('open');
+}
+
+document.getElementById('shortcutsModal').addEventListener('click', function(e) {
+  if (e.target === this) hideShortcuts();
+});
+
 function doDeleteCurrent() {
   hideConfirmOne();
   if (!questions.length) return;
@@ -2633,6 +3288,7 @@ function openEditForm(idx) {
   editingIndex = isEdit ? idx : null;
   document.getElementById('qformTitle').textContent = isEdit ? '✏️ Editar pregunta' : '➕ Añadir pregunta';
   document.getElementById('qfEnunciado').value = q ? q.question : '';
+  document.getElementById('qfComment').value = (q && q.comment) ? q.comment : '';
   currentCorrect = 0;
   const opts = [];
   if (q) {
@@ -2653,6 +3309,8 @@ function renderQFormOptions(opts) {
   for (let i = 0; i < 4; i++) {
     const row = document.createElement('label');
     row.className = 'qform-opt-row';
+    row.draggable = true;
+    row.title = 'Arrastra para reordenar las opciones';
     row.innerHTML = '<input type="radio" name="qfCorrect" value="' + i + '"' + (i === currentCorrect ? ' checked' : '') + '>' +
       '<span class="qform-letter">' + String.fromCharCode(65 + i) + '</span>';
     const t = document.createElement('input');
@@ -2666,8 +3324,103 @@ function renderQFormOptions(opts) {
     ok.textContent = '✓';
     ok.style.display = (i === currentCorrect) ? 'inline' : 'none';
     row.appendChild(ok);
+    attachQFormRowDrag(row);
     box.appendChild(row);
   }
+}
+
+let qfDropTargetIdx = -1;
+
+function cleanUpQfDropIndicators() {
+  document.querySelectorAll('.qform-opt-row.drop-before, .qform-opt-row.drop-after').forEach(el => {
+    el.classList.remove('drop-before', 'drop-after');
+  });
+}
+
+function attachQFormRowDrag(row) {
+  row.addEventListener('dragstart', (e) => {
+    const rows = Array.from(document.querySelectorAll('#qfOptions .qform-opt-row'));
+    e.dataTransfer.setData('text/plain', String(rows.indexOf(row)));
+    e.dataTransfer.effectAllowed = 'move';
+    row.classList.add('dragging');
+  });
+  row.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'move';
+    if (row.classList.contains('dragging')) {
+      cleanUpQfDropIndicators();
+      return;
+    }
+    cleanUpQfDropIndicators();
+    const rows = Array.from(document.querySelectorAll('#qfOptions .qform-opt-row'));
+    const curIdx = rows.indexOf(row);
+    const rect = row.getBoundingClientRect();
+    const above = e.clientY < rect.top + rect.height / 2;
+    if (above) {
+      row.classList.add('drop-before');
+      qfDropTargetIdx = curIdx;
+    } else {
+      row.classList.add('drop-after');
+      qfDropTargetIdx = curIdx + 1;
+    }
+  });
+  row.addEventListener('dragleave', (e) => {
+    if (!row.contains(e.relatedTarget)) {
+      row.classList.remove('drop-before', 'drop-after');
+    }
+  });
+  row.addEventListener('drop', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    cleanUpQfDropIndicators();
+    const srcIdx = parseInt(e.dataTransfer.getData('text/plain'), 10);
+    if (!isNaN(srcIdx) && qfDropTargetIdx >= 0 && srcIdx !== qfDropTargetIdx) {
+      moveQFormRowByIndex(srcIdx, qfDropTargetIdx);
+    }
+    qfDropTargetIdx = -1;
+  });
+  row.addEventListener('dragend', () => {
+    row.classList.remove('dragging');
+    cleanUpQfDropIndicators();
+    qfDropTargetIdx = -1;
+  });
+}
+
+function moveQFormRowByIndex(srcIdx, insertBeforeIdx) {
+  const box = document.getElementById('qfOptions');
+  const srcEl = box.querySelectorAll('.qform-opt-row')[srcIdx];
+  if (!srcEl) return;
+  box.removeChild(srcEl);
+  const rows = Array.from(box.querySelectorAll('.qform-opt-row'));
+  let insertAt = insertBeforeIdx;
+  if (insertAt > srcIdx) insertAt--;
+  if (insertAt < 0) insertAt = 0;
+  if (insertAt > rows.length) insertAt = rows.length;
+  if (insertAt >= rows.length) {
+    box.appendChild(srcEl);
+  } else {
+    box.insertBefore(srcEl, rows[insertAt]);
+  }
+  reindexQFormOptions();
+}
+
+function reindexQFormOptions() {
+  const box = document.getElementById('qfOptions');
+  const checkedRadio = box.querySelector('input[type="radio"]:checked');
+  const rows = box.querySelectorAll('.qform-opt-row');
+  rows.forEach((row, i) => {
+    const radio = row.querySelector('input[type="radio"]');
+    const letter = row.querySelector('.qform-letter');
+    const ok = row.querySelector('.qform-opt-ok');
+    radio.value = String(i);
+    if (letter) letter.textContent = String.fromCharCode(65 + i);
+    if (radio === checkedRadio) currentCorrect = i;
+    if (ok) {
+      ok.id = 'qfOk' + i;
+      ok.style.display = (i === currentCorrect) ? 'inline' : 'none';
+    }
+  });
 }
 
 document.getElementById('qfOptions').addEventListener('change', (e) => {
@@ -2686,29 +3439,45 @@ function hideQForm() {
 function saveQForm() {
   const status = document.getElementById('qfStatus');
   const en = document.getElementById('qfEnunciado').value.trim();
+  const comment = document.getElementById('qfComment').value.trim();
   if (!en) {
     status.textContent = 'Escribe el enunciado.';
     status.className = 'editor-status error';
     status.style.display = 'block';
     return;
   }
+  const hasBlanks = /\{\{.+?\}\}/.test(en);
   const inputs = document.querySelectorAll('#qfOptions input[type="text"]');
   const opts = Array.from(inputs).map(i => i.value.trim());
   const filledCount = opts.filter(o => o).length;
-  if (filledCount < 2) {
-    status.textContent = 'Rellena al menos 2 opciones.';
-    status.className = 'editor-status error';
-    status.style.display = 'block';
-    return;
-  }
-  if (!opts[currentCorrect]) {
-    status.textContent = 'Marca la opción correcta (debe tener texto).';
-    status.className = 'editor-status error';
-    status.style.display = 'block';
-    return;
-  }
+
   let g = escGift(en) + ' {\n';
-  opts.forEach((o, i) => { if (o) g += (i === currentCorrect ? '=' : '~') + o + '\n'; });
+  if (hasBlanks) {
+    const blankAns = en.match(/\{\{(.+?)\}\}/);
+    if (blankAns) g += '=' + blankAns[1].trim() + '\n';
+    if (filledCount > 0) {
+      opts.forEach((o, i) => { if (o) g += (i === currentCorrect ? '=' : '~') + o + '\n'; });
+    }
+  } else if (filledCount === 0) {
+    status.textContent = 'Escribe al menos una opción o usa {{respuesta}} en el enunciado para respuesta corta.';
+    status.className = 'editor-status error';
+    status.style.display = 'block';
+    return;
+  } else {
+    if (filledCount < 2) {
+      status.textContent = 'Rellena al menos 2 opciones.';
+      status.className = 'editor-status error';
+      status.style.display = 'block';
+      return;
+    }
+    if (!opts[currentCorrect]) {
+      status.textContent = 'Marca la opción correcta (debe tener texto).';
+      status.className = 'editor-status error';
+      status.style.display = 'block';
+      return;
+    }
+    opts.forEach((o, i) => { if (o) g += (i === currentCorrect ? '=' : '~') + o + '\n'; });
+  }
   g += '}';
   const parsed = GIFT.parse(g);
   if (parsed.length !== 1) {
@@ -2717,15 +3486,19 @@ function saveQForm() {
     status.style.display = 'block';
     return;
   }
+  if (comment) parsed[0].comment = comment;
   if (editingIndex === null) {
     ensureDisplayOrder();
     const insertPos = questions.length ? Math.min(displayOrder[currentIdx] + 1, questions.length) : 0;
+    parsed[0].tags = [];
     questions.splice(insertPos, 0, parsed[0]);
     const perm = displayOrder.map(v => v > insertPos ? v + 1 : v);
     perm.splice(currentIdx + 1, 0, insertPos);
     displayOrder = perm;
     currentIdx = currentIdx + 1;
   } else {
+    parsed[0].tags = qTags(questions[editingIndex]);
+    if (!comment && questions[editingIndex].comment) parsed[0].comment = questions[editingIndex].comment;
     questions[editingIndex] = parsed[0];
     currentIdx = displayOrder.indexOf(editingIndex);
   }
@@ -2743,21 +3516,17 @@ document.getElementById('qformModal').addEventListener('click', function(e) {
 });
 
 // --- Download ---
-function toggleDownloadMenu(e) {
-  if (e) e.stopPropagation();
-  document.getElementById('downloadMenu').classList.toggle('open');
-}
-function closeDownloadMenu() {
-  document.getElementById('downloadMenu').classList.remove('open');
-}
 document.addEventListener('click', (e) => {
-  if (!document.getElementById('downloadDropdown')?.contains(e.target)) closeDownloadMenu();
   if (!document.getElementById('shuffleDropdown')?.contains(e.target)) closeShuffleMenu();
 });
 
 function downloadGift() {
   if (!questions.length) return;
-  const text = questions.map(q => q.raw || giftFromQuestion(q)).join('\n\n') + '\n';
+  const text = getExportQuestions().map(q => {
+    const raw = q.raw || giftFromQuestion(q);
+    if (q.comment) return '//corrector: ' + q.comment + '\n' + raw;
+    return raw;
+  }).join('\n\n') + '\n';
   const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -2765,13 +3534,12 @@ function downloadGift() {
   document.body.appendChild(a);
   a.click();
   setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
-  closeDownloadMenu();
 }
 
 // ─── FULLSCREEN READER ───
 function openReader(text) {
   const overlay = document.getElementById('readerOverlay');
-  document.getElementById('readerText').textContent = text;
+  document.getElementById('readerText').innerHTML = sanitizeQHTML(text);
   document.getElementById('readerWrapBtn').textContent = '📏 Text wrap: ON';
   overlay.classList.add('wrap');
   overlay.classList.add('open');
@@ -2917,14 +3685,36 @@ function hideReport() {
   document.getElementById('reportModal').classList.remove('open');
 }
 
+function sanitizeQHTML(s) {
+  const tmp = document.createElement('div');
+  tmp.textContent = s;
+  let h = tmp.innerHTML;
+  const imgs = [];
+  h = h.replace(/&lt;img\s+((?:[^&]|&(?!gt;))+?)\s*&gt;/gi, (m, attrs) => {
+    const a = attrs.replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+    imgs.push('<img ' + a + ' style="max-width:100%;height:auto;border-radius:4px;margin:6px 0;display:block;">');
+    return '\x00IMG' + (imgs.length - 1) + '\x00';
+  });
+  h = h.replace(/\x00IMG(\d+)\x00/g, (m, i) => imgs[parseInt(i)] || '');
+  return h;
+}
+
 function escapeHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 function exportDocument() {
   if (!questions.length) return;
-  closeDownloadMenu();
+  renderExportFilter();
   document.getElementById('pdfConfigModal').classList.add('open');
+}
+
+function getExportQuestions() {
+  if (!exportSel.length) return questions;
+  return questions.filter(q => {
+    const t = qTags(q);
+    return exportSel.some(f => f === 'flagged' ? t.includes(FLAG_TAG) : f === 'unflagged' ? !t.includes(FLAG_TAG) : t.includes(f));
+  });
 }
 
 function hidePdfConfig() {
@@ -3025,10 +3815,13 @@ function generatePDF() {
     h += '<h1>' + esc(document.getElementById('pdfTitle').value.trim() || '⚡ GIFTviewer — Listado de preguntas') + '</h1>';
   }
 
-  h += '<p class="print-meta">' + questions.length + ' preguntas — generado el ' + new Date().toLocaleString() + '</p>';
+  const qs = getExportQuestions();
+  h += '<p class="print-meta">' + qs.length + ' preguntas — generado el ' + new Date().toLocaleString() + '</p>';
 
   const noBold = document.getElementById('pdfNoBold').checked;
   const shuffle = document.getElementById('pdfShuffle').checked;
+  const showSol = document.getElementById('pdfShowSolutions').checked;
+  const showComments = showSol && document.getElementById('pdfShowComments').checked;
   const solution = [];
 
   const shuffleArr = (arr) => {
@@ -3040,10 +3833,16 @@ function generatePDF() {
     return a;
   };
 
-  questions.forEach((q, i) => {
+  qs.forEach((q, i) => {
     h += '<div class="print-q">';
     h += '<div class="print-q-num">Pregunta ' + (i + 1) + '</div>';
-    h += '<div class="print-q-text">' + esc(q.question) + '</div>';
+    let qTextHtml = sanitizeQHTML(q.question);
+    if (q.blanks && q.blanks.length) {
+      if (showSol) {
+        q.blanks.forEach(ans => { qTextHtml = qTextHtml.replace('______', '<span class="corr">' + esc(ans) + '</span>'); });
+      }
+    }
+    h += '<div class="print-q-text">' + qTextHtml + '</div>';
     h += '<div class="print-answers">';
     if (q.type === 'tf') {
       let correctIdx = q.correct;
@@ -3058,9 +3857,12 @@ function generatePDF() {
       });
       solution.push({ n: i + 1, a: String.fromCharCode(65 + correctIdx) });
     } else if (q.type === 'short') {
-      const answers = shuffle ? shuffleArr(q.answers) : q.answers;
-      h += '<div class="print-opt' + (noBold ? '' : ' corr') + '">Respuesta: ' + answers.map(a => '“' + esc(a.text) + '”').join(' / ') + '</div>';
-      solution.push({ n: i + 1, a: '—' });
+      if (showSol) {
+        const answers = shuffle ? shuffleArr(q.answers) : q.answers;
+        h += '<div class="print-opt' + (noBold ? '' : ' corr') + '">Respuesta: ' + answers.map(a => '“' + esc(a.text) + '”').join(' / ') + '</div>';
+      }
+      h += '<div class="print-short-space"></div>';
+      solution.push({ n: i + 1, a: q.answers.map(a => a.text).join(' / ') });
     } else {
       let answers = shuffle ? shuffleArr(q.answers) : q.answers;
       let correctIdx = answers.findIndex(a => a.correct);
@@ -3069,7 +3871,11 @@ function generatePDF() {
       });
       solution.push({ n: i + 1, a: correctIdx === -1 ? '—' : String.fromCharCode(65 + correctIdx) });
     }
-    h += '</div></div>';
+    h += '</div>';
+    if (showComments && q.comment) {
+      h += '<div class="print-comment"><div class="print-comment-title">☠ Solo visible para correctores</div>' + esc(q.comment) + '</div>';
+    }
+    h += '</div>';
   });
 
   if (shuffle) {
@@ -3095,6 +3901,8 @@ function downloadTXT() {
   hidePdfConfig();
   const noBold = document.getElementById('pdfNoBold').checked;
   const shuffle = document.getElementById('pdfShuffle').checked;
+  const showSol = document.getElementById('pdfShowSolutions').checked;
+  const showComments = showSol && document.getElementById('pdfShowComments').checked;
   const title = document.getElementById('pdfTitle').value.trim() || 'GIFTviewer — Examen';
   const shuffleArr = (a) => {
     const arr = a.slice();
@@ -3106,10 +3914,11 @@ function downloadTXT() {
   };
   const lines = [];
   lines.push(title);
-  lines.push(questions.length + ' preguntas — generado el ' + new Date().toLocaleString());
+  const qs = getExportQuestions();
+  lines.push(qs.length + ' preguntas — generado el ' + new Date().toLocaleString());
   lines.push('');
   const solution = [];
-  questions.forEach((q, i) => {
+  qs.forEach((q, i) => {
     lines.push('Pregunta ' + (i + 1));
     lines.push(q.question);
     if (q.type === 'tf') {
@@ -3138,6 +3947,9 @@ function downloadTXT() {
         lines.push('   ' + (a.correct && !noBold ? '**' + txt + '**' : txt));
       });
       solution.push({ n: i + 1, a: correctIdx === -1 ? '—' : String.fromCharCode(65 + correctIdx) });
+    }
+    if (showComments && q.comment) {
+      lines.push('   ⚠️ SOLO VISIBLE PARA CORRECTORES: ' + q.comment);
     }
     lines.push('');
   });
@@ -3176,6 +3988,8 @@ function downloadRTF() {
   hidePdfConfig();
   const noBold = document.getElementById('pdfNoBold').checked;
   const shuffle = document.getElementById('pdfShuffle').checked;
+  const showSol = document.getElementById('pdfShowSolutions').checked;
+  const showComments = showSol && document.getElementById('pdfShowComments').checked;
   const title = document.getElementById('pdfTitle').value.trim() || 'GIFTviewer — Examen';
   const shuffleArr = (a) => {
     const arr = a.slice();
@@ -3185,11 +3999,12 @@ function downloadRTF() {
     }
     return arr;
   };
-  let r = '{\\rtf1\\ansi\\ansicpg1252\\deff0 {\\fonttbl{\\f0 Arial;}}\\viewkind4\\uc1\\pard';
+  let r = '{\\rtf1\\ansi\\ansicpg1252\\deff0 {\\fonttbl{\\f0 Arial;}}{\\colortbl;\\red220\\green38\\blue38;}\\viewkind4\\uc1\\pard';
   r += '\\b ' + rtfEsc(title) + '\\b0\\par ';
-  r += rtfEsc(questions.length + ' preguntas — generado el ' + new Date().toLocaleString()) + '\\par \\par ';
+  const qs = getExportQuestions();
+  r += rtfEsc(qs.length + ' preguntas — generado el ' + new Date().toLocaleString()) + '\\par \\par ';
   const solution = [];
-  questions.forEach((q, i) => {
+  qs.forEach((q, i) => {
     r += '\\b Pregunta ' + (i + 1) + '\\b0\\par ';
     r += rtfEsc(q.question) + '\\par ';
     if (q.type === 'tf') {
@@ -3222,6 +4037,10 @@ function downloadRTF() {
         r += '\\par ';
       });
       solution.push({ n: i + 1, a: correctIdx === -1 ? '—' : String.fromCharCode(65 + correctIdx) });
+    }
+    if (showComments && q.comment) {
+      r += '\\par \\cf1\\b SOLO VISIBLE PARA CORRECTORES:\\b0\\cf0\\par ';
+      r += rtfEsc(q.comment) + '\\par ';
     }
     r += '\\par ';
   });
@@ -3377,11 +4196,21 @@ searchInput.addEventListener('keydown', (e) => {
 
 document.addEventListener('click', (e) => {
   if (searchResults.classList.contains('show') && !searchBox.contains(e.target)) closeSearch();
+  if (mfOpen && !(e.target.closest && e.target.closest('.mf-wrap'))) {
+    mfOpen = null;
+    refreshMultiBoxes();
+  }
 });
 
 // ─── KEYBOARD SHORTCUTS ───
 document.addEventListener('keydown', (e) => {
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+    if (e.key === 'Escape' && document.getElementById('qformModal')?.classList.contains('open')) {
+      e.preventDefault();
+      hideQForm();
+    }
+    return;
+  }
 
   const oneOpen = document.getElementById('confirmOneModal')?.classList.contains('open');
   if (oneOpen) {
@@ -3426,6 +4255,11 @@ document.addEventListener('keydown', (e) => {
     }
   }
 
+  if (e.key === 'Escape' && mfOpen) {
+    mfOpen = null;
+    refreshMultiBoxes();
+  }
+
   switch(e.key) {
     case 'ArrowRight':
     case 'n':
@@ -3461,7 +4295,11 @@ document.addEventListener('keydown', (e) => {
       toggleFullscreen();
       break;
     case 'l':
+    case 'm':
       toggleSidebar();
+      break;
+    case 'i':
+      showShortcuts();
       break;
     case '/':
     case 'NumpadDivide':
@@ -3470,7 +4308,6 @@ document.addEventListener('keydown', (e) => {
       break;
     case 'Escape':
       closeSearch();
-      closeDownloadMenu();
       closeShuffleMenu();
       document.querySelectorAll('.raw-modal').forEach(m => m.classList.remove('open'));
       document.getElementById('reportModal')?.classList.remove('open');
@@ -3480,6 +4317,8 @@ document.addEventListener('keydown', (e) => {
       document.getElementById('pdfConfigModal')?.classList.remove('open');
       document.getElementById('confirmModal')?.classList.remove('open');
       document.getElementById('confirmOneModal')?.classList.remove('open');
+      hideShortcuts();
+      hideCommentModal();
       closeReader();
       showingSolution = false;
       renderQuestion();
@@ -3532,7 +4371,7 @@ document.getElementById('restoreModal').addEventListener('click', function(e) {
 });
 
 (function init() {
-  // Config de git-adjacent? no. Arranque:
+  // Arranque:
   const st = loadSavedState();
   if (st && Array.isArray(st.questions) && st.questions.length) {
     const when = st.savedAt ? ' guardado el ' + new Date(st.savedAt).toLocaleString() : '';
@@ -3541,6 +4380,8 @@ document.getElementById('restoreModal').addEventListener('click', function(e) {
       ' pregunta(s)' + (st.currentFileName ? ' (archivo: ' + st.currentFileName + ')' : '') + when +
       '. ¿Quieres recuperarlo (pestaña o navegador cerrado, corte de luz, etc.)?';
     document.getElementById('restoreModal').classList.add('open');
+  } else {
+    renderEmpty();
   }
 })();
 
